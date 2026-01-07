@@ -1,0 +1,32 @@
+nome_formatado;mg_amp;vol_amp;dose_min;dose_max_hab;dose_max_tol;unidade
+Amiodarona 3ml (50mg/ml);150.0;3.0;0.0;0.0;0.0;mg/min
+Atracúrio 2.5ml (10mg/ml);25.0;2.5;5.0;20.0;20.0;mcg/kg/min
+Atracúrio 5ml (10mg/ml);50.0;5.0;5.0;20.0;20.0;mcg/kg/min
+Cisatracúrio 5ml (2mg/ml);10.0;5.0;1.0;3.0;10.0;mcg/kg/min
+Dexmedetomidina 2ml (100mcg/ml);0.2;2.0;0.1;0.7;1.5;mcg/kg/h
+Dobutamina 20ml (12.5mg/ml);250.0;20.0;2.5;20.0;40.0;mcg/kg/min
+Dopamina 10ml (5mg/ml);50.0;10.0;5.0;20.0;50.0;mcg/kg/min
+Esmolol 10ml (10mg/ml);100.0;10.0;50.0;200.0;300.0;mcg/kg/min
+Esmolol 250ml (10mg/ml);2500.0;250.0;50.0;200.0;300.0;mcg/kg/min
+Fentanil 2ml (50mcg/ml);0.1;2.0;0.5;5.0;10.0;mcg/kg/h
+Fentanil 5ml (50mcg/ml);0.25;5.0;0.5;5.0;10.0;mcg/kg/h
+Fentanil 10ml (50mcg/ml);0.5;10.0;0.5;5.0;10.0;mcg/kg/h
+Lidocaína 20ml (20mg/ml);400.0;20.0;1.0;4.0;4.0;mg/min
+Midazolam 3ml (5mg/ml);15.0;3.0;0.02;0.2;1.0;mg/kg/h
+Midazolam 5ml (1mg/ml);5.0;5.0;0.02;0.2;1.0;mg/kg/h
+Midazolam 10ml (5mg/ml);50.0;10.0;0.02;0.2;1.0;mg/kg/h
+Morfina 1ml (10mg/ml);10.0;1.0;2.0;4.0;10.0;mg/h
+Nitroglicerina 5ml (5mg/ml);25.0;5.0;5.0;200.0;400.0;mcg/min
+Nitroprussiato 2ml (25mg/ml);50.0;2.0;0.25;5.0;10.0;mcg/kg/min
+Norepinefrina 4ml (1mg/ml);4.0;4.0;0.01;1.0;2.0;mcg/kg/min
+Norepinefrina 4ml (2mg/ml);8.0;4.0;0.01;1.0;2.0;mcg/kg/min
+Propofol 1% 20ml (10mg/ml);200.0;20.0;5.0;50.0;80.0;mcg/kg/min
+Propofol 1% 50ml (10mg/ml);500.0;50.0;5.0;50.0;80.0;mcg/kg/min
+Propofol 2% 50ml (20mg/ml);1000.0;50.0;5.0;50.0;80.0;mcg/kg/min
+Remifentanil 2mg (Pó);2.0;0.0;0.01;0.5;1.0;mcg/kg/min
+Remifentanil 5mg (Pó);5.0;0.0;0.01;0.5;1.0;mcg/kg/min
+Rocurônio 5ml (10mg/ml);50.0;5.0;3.0;12.0;16.0;mcg/kg/min
+Vasopressina 1ml (20UI/ml);20.0;1.0;0.01;0.04;0.06;UI/min
+Cetamina 2ml (50mg/ml);100.0;2.0;0.05;0.5;1.0;mg/kg/h
+Adrenalina 1ml (1mg/ml);1.0;1.0;0.01;1.0;2.0;mcg/kg/min
+Terbutalina 1ml (0.5mg/ml);0.5;1.0;0.1;0.4;0.6;mcg/kg/min

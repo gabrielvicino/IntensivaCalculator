@@ -1,0 +1,24 @@
+nome_formatado;conc;dose_min;dose_hab;dose_max
+Midazolam 3ml (5mg/ml);5;0.1;0.2;0.3
+Midazolam 5ml (1mg/ml);1;0.1;0.2;0.3
+Midazolam 10ml (5mg/ml);5;0.1;0.2;0.3
+Propofol 10ml (10mg/ml);10;1.0;2.0;3.0
+Propofol 20ml (10mg/ml);10;1.0;2.0;3.0
+Propofol 50ml (10mg/ml);10;1.0;2.0;3.0
+Propofol 50ml (20mg/ml);20;1.0;2.0;3.0
+Escetamina 2ml (50mg/ml);50;1.0;1.5;2.0
+Etomidato 10ml (2mg/ml);2;0.2;0.3;0.3
+Fentanil 2ml (50mcg/ml);50;1.0;2.0;3.0
+Fentanil 5ml (50mcg/ml);50;1.0;2.0;3.0
+Fentanil 10ml (50mcg/ml);50;1.0;2.0;3.0
+Remifentanil 2mg (20mcg/ml);20;1.5;1.5;1.5
+Remifentanil 5mg (50mcg/ml);50;1.5;1.5;1.5
+Rocurônio 5ml (10mg/ml);10;1.0;1.2;1.5
+Atracúrio 5ml (10mg/ml);10;0.5;0.6;0.6
+Cisatracúrio 5ml (2mg/ml);2;0.15;0.2;0.2
+Cisatracúrio 10ml (2mg/ml);2;0.15;0.2;0.2
+Succinilcolina 100mg (10mg/ml);10;0.6;1.0;1.5
+Succinilcolina 500mg (50mg/ml);50;0.6;1.0;1.5
+Lidocaína 1,8ml (20mg/ml);20;1.5;1.5;1.5
+Lidocaína 5ml (20mg/ml);20;1.5;1.5;1.5
+Lidocaína 20ml (20mg/ml);20;1.5;1.5;1.5
