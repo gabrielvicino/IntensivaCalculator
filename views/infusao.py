@@ -5,8 +5,6 @@ from utils import load_data
 # ==============================================================================
 # 1. CONFIGURAÇÃO VISUAL
 # ==============================================================================
-# st.set_page_config(page_title="Intensiva Calculator Pro", page_icon="⚕️", layout="wide")
-
 COLOR_PRIMARY = "#0F9D58"
 COLOR_ACCENT = "#1a73e8"
 COLOR_BG = "#FFFFFF"
@@ -46,7 +44,6 @@ def format_br(valor, casas=1):
 # ==============================================================================
 st.header("💉 Calculadora de Infusão")
 
-# Tenta carregar do Google Sheets (Aba DB_INFUSAO), se falhar, usa o CSV
 df_inf = load_data('DB_INFUSAO', 'banco_dados_infusao.csv')
 
 if df_inf.empty:
@@ -62,7 +59,6 @@ with col_input_1:
     peso = st.number_input("Peso do Paciente (kg)", value=70.0, step=0.1, format="%.1f")
 
 with col_input_2:
-    # Identifica a coluna correta do nome
     col_nome = 'nome_formatado' if 'nome_formatado' in df_inf.columns else 'apresentacao'
     
     if col_nome in df_inf.columns:
@@ -75,17 +71,13 @@ with col_input_2:
                 index_padrao = i
                 break
         
-        droga_nome = st.selectbox(
-            "Selecione a Medicação", 
-            lista_drogas, 
-            index=index_padrao 
-        )
+        droga_nome = st.selectbox("Selecione a Medicação", lista_drogas, index=index_padrao)
     else:
         st.error("Erro de estrutura: Coluna de nome não encontrada.")
         st.stop()
 
 # ==============================================================================
-# 4. CÁLCULOS E LÓGICA
+# 4. MOTOR DE CÁLCULO E LÓGICA
 # ==============================================================================
 if droga_nome:
     row = df_inf[df_inf[col_nome] == droga_nome].iloc[0]
@@ -101,7 +93,6 @@ if droga_nome:
         def_amp = 4.0
         def_dil = 234
     else:
-        # Padrão geral: 1 amp em 98ml (Solução de 100ml)
         def_amp = float(info.get('qtd_amp_padrao', 1.0)) if pd.notna(info.get('qtd_amp_padrao')) and float(info.get('qtd_amp_padrao', 0)) > 0 else 1.0
         def_dil = int(info.get('diluente_padrao', 98)) if pd.notna(info.get('diluente_padrao')) and int(info.get('diluente_padrao', 0)) > 0 else 98
     
@@ -124,29 +115,53 @@ if droga_nome:
     
     conc_principal = qtd_total / vol_total
     conc_secundaria = conc_principal * 1000
-    unidade_str = str(info.get('unidade', 'mg'))
     
+    # Tratamento de Strings e Unidades
+    unidade_str = str(info.get('unidade', 'mg')).strip()
+    
+    # Definição Dinâmica de Rótulos
     if "UI" in unidade_str:
         label_conc_1, label_conc_2 = "UI/ml", "mUI/ml"
+    elif "g" == unidade_str:
+        label_conc_1, label_conc_2 = "g/ml", "mg/ml"
     else:
         label_conc_1, label_conc_2 = "mg/ml", "mcg/ml"
 
-    # Função local de conversão
+    # --- FUNÇÃO CONVERSORA (Universal & Blindada) ---
     def converte_dose(dose, unidade_droga):
         try: dose = float(dose)
-        except: return 0
-        if dose == 0: return 0
+        except: return 0.0
+        if dose == 0: return 0.0
         
-        if unidade_droga == "mcg/kg/min": return (dose * peso * 60) / conc_secundaria if conc_secundaria else 0
-        elif unidade_droga == "mcg/kg/h": return (dose * peso) / conc_secundaria if conc_secundaria else 0
-        elif unidade_droga == "mg/kg/h": return (dose * peso) / conc_principal if conc_principal else 0
-        elif unidade_droga == "mg/h": return dose / conc_principal if conc_principal else 0
-        elif unidade_droga == "mcg/min": return (dose * 60) / conc_secundaria if conc_secundaria else 0
-        elif unidade_droga == "mg/min": return (dose * 60) / conc_principal if conc_principal else 0
-        elif unidade_droga == "UI/min": return (dose * 60) / conc_principal if conc_principal else 0
-        elif unidade_droga == "UI/kg/h": return (dose * peso) / conc_principal if conc_principal else 0
-        elif unidade_droga == "mg/kg/min": return (dose * peso * 60) / conc_principal if conc_principal else 0
-        return 0
+        u = unidade_droga # Já sanitizado acima
+        
+        # --- BLINDAGEM DE UNIDADES RARAS ---
+        if u == "ng/kg/min":    return (dose * peso * 60) / (conc_secundaria * 1000) if conc_secundaria else 0
+        elif u == "ng/kg/h":    return (dose * peso) / (conc_secundaria * 1000) if conc_secundaria else 0
+        elif u == "mEq/h":      return dose / conc_principal if conc_principal else 0
+        elif u == "mEq/kg/h":   return (dose * peso) / conc_principal if conc_principal else 0
+        elif u == "mmol/h":     return dose / conc_principal if conc_principal else 0
+        elif u == "mmol/kg/h":  return (dose * peso) / conc_principal if conc_principal else 0
+
+        # --- PADRÕES COMUNS ---
+        # Grupo A: Dependentes de Peso
+        elif u == "mcg/kg/min": return (dose * peso * 60) / conc_secundaria if conc_secundaria else 0
+        elif u == "mcg/kg/h":   return (dose * peso) / conc_secundaria if conc_secundaria else 0
+        elif u == "mg/kg/h":    return (dose * peso) / conc_principal if conc_principal else 0
+        elif u == "mg/kg/min":  return (dose * peso * 60) / conc_principal if conc_principal else 0
+        elif u == "UI/kg/h":    return (dose * peso) / conc_principal if conc_principal else 0
+        elif u == "UI/kg/min":  return (dose * peso * 60) / conc_principal if conc_principal else 0
+        
+        # Grupo B: Dose Absoluta
+        elif u == "mcg/h":      return dose / conc_secundaria if conc_secundaria else 0
+        elif u == "mcg/min":    return (dose * 60) / conc_secundaria if conc_secundaria else 0
+        elif u == "mg/h":       return dose / conc_principal if conc_principal else 0
+        elif u == "mg/min":     return (dose * 60) / conc_principal if conc_principal else 0
+        elif u == "UI/h":       return dose / conc_principal if conc_principal else 0
+        elif u == "UI/min":     return (dose * 60) / conc_principal if conc_principal else 0
+        elif u == "g/h":        return dose / conc_principal if conc_principal else 0
+        
+        return 0.0
 
     # Limites
     dose_min = info.get('dose_min', 0)
@@ -157,37 +172,31 @@ if droga_nome:
     bomba_max_hab = converte_dose(dose_max_hab, unidade_str)
     bomba_max_tol = converte_dose(dose_max_tol, unidade_str)
 
-    # --- EXIBIÇÃO ---
+    # --- EXIBIÇÃO DE RESULTADOS ---
     st.markdown("### 1. Dados da Solução")
     col_res1, col_res2, col_res3 = st.columns(3)
     
-    # PARTE 1: VERDE (Dados da Solução)
-    # Sobrescrevemos o estilo padrão com border-left-color verde
     with col_res1:
         st.markdown(f"""<div class="result-box" style="border-left-color: #28a745;"><div class="result-title">VOLUME FINAL</div><div class="result-value">{int(vol_total)} ml</div></div>""", unsafe_allow_html=True)
     with col_res2:
-        st.markdown(f"""<div class="result-box" style="border-left-color: #28a745;"><div class="result-title">CONCENTRAÇÃO ({label_conc_1})</div><div class="result-value">{format_br(conc_principal, 4)} {label_conc_1}</div></div>""", unsafe_allow_html=True)
+        st.markdown(f"""<div class="result-box" style="border-left-color: #28a745;"><div class="result-title">CONCENTRAÇÃO ({label_conc_1})</div><div class="result-value">{format_br(conc_principal, 2)} {label_conc_1}</div></div>""", unsafe_allow_html=True)
     with col_res3:
         st.markdown(f"""<div class="result-box" style="border-left-color: #28a745;"><div class="result-title">CONCENTRAÇÃO ({label_conc_2})</div><div class="result-value">{format_br(conc_secundaria, 2)} {label_conc_2}</div></div>""", unsafe_allow_html=True)
 
-    st.markdown(f"### 2. Limites de Velocidade da Bomba ({unidade_str})")
+    # --- SEÇÃO CORRIGIDA E ATUALIZADA (COM UNIDADES) ---
+    st.markdown(f"### 2. Limites de Velocidade da Bomba")
     c_lim1, c_lim2, c_lim3 = st.columns(3)
     
-    # PARTE 2: CORES DO SEMÁFORO
-    # Alteração feita aqui: Adicionado ', 2' na função format_br para os valores dentro dos parênteses
     with c_lim1:
-        # MÍNIMA = AZUL
-        st.markdown(f"""<div class="result-box" style="border-left-color: #1a73e8;"><div class="result-title">MÍNIMA<br>({format_br(dose_min, 2)})</div><div class="result-value">{format_br(bomba_min)} ml/h</div></div>""", unsafe_allow_html=True)
+        st.markdown(f"""<div class="result-box" style="border-left-color: #1a73e8;"><div class="result-title">MÍNIMA<br>({format_br(dose_min, 2)} {unidade_str})</div><div class="result-value">{format_br(bomba_min)} ml/h</div></div>""", unsafe_allow_html=True)
     with c_lim2:
-        # MÁXIMA HABITUAL = AMARELO
-        st.markdown(f"""<div class="result-box" style="border-left-color: #ffc107;"><div class="result-title">MÁXIMA HABITUAL<br>({format_br(dose_max_hab, 2)})</div><div class="result-value">{format_br(bomba_max_hab)} ml/h</div></div>""", unsafe_allow_html=True)
+        st.markdown(f"""<div class="result-box" style="border-left-color: #ffc107;"><div class="result-title">MÁXIMA HABITUAL<br>({format_br(dose_max_hab, 2)} {unidade_str})</div><div class="result-value">{format_br(bomba_max_hab)} ml/h</div></div>""", unsafe_allow_html=True)
     with c_lim3:
-        # MÁXIMA ESTUDADA = VERMELHO
-        st.markdown(f"""<div class="result-box" style="border-left-color: #dc3545;"><div class="result-title">MÁXIMA ESTUDADA<br>({format_br(dose_max_tol, 2)})</div><div class="result-value">{format_br(bomba_max_tol)} ml/h</div></div>""", unsafe_allow_html=True)
+        st.markdown(f"""<div class="result-box" style="border-left-color: #dc3545;"><div class="result-title">MÁXIMA ESTUDADA<br>({format_br(dose_max_tol, 2)} {unidade_str})</div><div class="result-value">{format_br(bomba_max_tol)} ml/h</div></div>""", unsafe_allow_html=True)
 
     st.markdown("---")
     
-    # --- SIMULADOR ---
+    # --- SIMULADOR EM TEMPO REAL ---
     st.subheader("3. Simulador em Tempo Real")
     col_sim1, col_sim2 = st.columns(2)
     
@@ -196,18 +205,34 @@ if droga_nome:
         ml_h_atual = st.number_input("Velocidade Atual da Bomba (ml/h)", value=val_inicial, step=0.1, format="%.1f")
         
         if ml_h_atual > 0:
-            # Cálculo Reverso
-            if unidade_str == "mcg/kg/min": dose_real = (ml_h_atual * conc_secundaria) / peso / 60
-            elif unidade_str == "mcg/kg/h": dose_real = (ml_h_atual * conc_secundaria) / peso
-            elif unidade_str == "mg/kg/h": dose_real = (ml_h_atual * conc_principal) / peso
-            elif unidade_str == "mg/h": dose_real = ml_h_atual * conc_principal
-            elif unidade_str == "mcg/min": dose_real = (ml_h_atual * conc_secundaria) / 60
-            elif unidade_str == "mg/min": dose_real = (ml_h_atual * conc_principal) / 60
-            elif unidade_str == "UI/min": dose_real = (ml_h_atual * conc_principal) / 60
-            elif unidade_str == "UI/kg/h": dose_real = (ml_h_atual * conc_principal) / peso
-            elif unidade_str == "mg/kg/min": dose_real = (ml_h_atual * conc_principal) / peso / 60
-            else: dose_real = 0
+            dose_real = 0.0
+            u = unidade_str
+
+            # Grupo A: Reverso Dependente de Peso
+            if u == "mcg/kg/min":   dose_real = (ml_h_atual * conc_secundaria) / peso / 60
+            elif u == "mcg/kg/h":   dose_real = (ml_h_atual * conc_secundaria) / peso
+            elif u == "mg/kg/h":    dose_real = (ml_h_atual * conc_principal) / peso
+            elif u == "mg/kg/min":  dose_real = (ml_h_atual * conc_principal) / peso / 60
+            elif u == "UI/kg/h":    dose_real = (ml_h_atual * conc_principal) / peso
+            elif u == "UI/kg/min":  dose_real = (ml_h_atual * conc_principal) / peso / 60
             
+            # Grupo B: Reverso Absoluto
+            elif u == "mcg/h":      dose_real = (ml_h_atual * conc_secundaria)
+            elif u == "mcg/min":    dose_real = (ml_h_atual * conc_secundaria) / 60
+            elif u == "mg/h":       dose_real = (ml_h_atual * conc_principal)
+            elif u == "mg/min":     dose_real = (ml_h_atual * conc_principal) / 60
+            elif u == "UI/h":       dose_real = (ml_h_atual * conc_principal)
+            elif u == "UI/min":     dose_real = (ml_h_atual * conc_principal) / 60
+            elif u == "g/h":        dose_real = (ml_h_atual * conc_principal)
+            
+            # Grupo C: Reverso Blindado (Raros)
+            elif u == "ng/kg/min":  dose_real = (ml_h_atual * conc_secundaria * 1000) / peso / 60
+            elif u == "ng/kg/h":    dose_real = (ml_h_atual * conc_secundaria * 1000) / peso
+            elif u == "mEq/h":      dose_real = (ml_h_atual * conc_principal)
+            elif u == "mEq/kg/h":   dose_real = (ml_h_atual * conc_principal) / peso
+            elif u == "mmol/h":     dose_real = (ml_h_atual * conc_principal)
+            elif u == "mmol/kg/h":  dose_real = (ml_h_atual * conc_principal) / peso
+
             st.metric(f"Dose Entregue ({unidade_str})", f"{format_br(dose_real, 2)}")
             
             try:
