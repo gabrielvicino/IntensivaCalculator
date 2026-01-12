@@ -125,7 +125,7 @@ with c3:
     unid_solucao = st.selectbox("Unidade da Solução", ["mg", "mcg", "g", "UI"], key="conv_unid")
 
 with c4: 
-    lbl_vol = get_label("Volume Total (ml)", val_vol)
+    lbl_vol = get_label("Volume Total na Ampola / Solução (ml)", val_vol)
     vol_str = st.text_input(lbl_vol, value="", key="conv_vol")
     vol_amp = safe_float(vol_str)
 
@@ -205,7 +205,7 @@ if dose_desejada > 0 and qtd > 0 and conc_base > 0:
 if erro_msg:
     st.error(erro_msg)
 elif vol_aspirar > 0:
-    st.markdown(f"""<div class="highlight-bolus">💉 Administrar: {format_br(vol_aspirar, 2)} ml <br><span style="font-size:0.8em;font-weight:normal;color:#555;">(Equivalente a {format_br(fracao_amp, 2)} do volume total)</span></div>""", unsafe_allow_html=True)
+    st.markdown(f"""<div class="highlight-bolus">💉 Administrar: {format_br(vol_aspirar, 2)} ml <br><span style="font-size:0.8em;font-weight:normal;color:#555;">(Equivalente a {format_br(fracao_amp, 2)} Ampola / Frasco da Solução)</span></div>""", unsafe_allow_html=True)
 
 st.markdown("---")
 
