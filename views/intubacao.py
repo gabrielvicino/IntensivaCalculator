@@ -5,9 +5,6 @@ from utils import load_data
 # ==============================================================================
 # 1. CONFIGURAÇÃO VISUAL E ESTILO
 # ==============================================================================
-# [BLOQUEADO] Gerenciado pelo app.py para evitar erro de DuplicateConfig
-# st.set_page_config(page_title="Intubação Orotraqueal", page_icon="⚡", layout="wide")
-
 COLOR_PRIMARY = "#0F9D58"
 COLOR_BG = "#FFFFFF"
 
@@ -38,6 +35,7 @@ def format_br(valor, casas=1):
 st.header("⚡ Intubação Orotraqueal")
 
 # --- CARREGAMENTO HÍBRIDO ---
+# Tenta pegar do Sheets (DB_IOT), se falhar pega do CSV local
 df_iot = load_data('DB_IOT', 'banco_dados_iot.csv')
 
 if df_iot.empty:
@@ -78,11 +76,11 @@ if col_nome:
                 vol_hab = (dose_hab * peso) / conc
                 vol_max = (dose_max * peso) / conc
                 
-                # Monta dicionário (já formatado para string com 'ml', mas vamos estilizar depois)
+                # Monta dicionário
                 dados_tabela.append({
                     "Medicação": nome,
                     "Vol. Mínimo": f"{format_br(vol_min)} ml",
-                    "Vol. Habitual": f"{format_br(vol_hab)} ml",  # Nome alterado aqui
+                    "Vol. Habitual": f"{format_br(vol_hab)} ml",
                     "Vol. Máximo": f"{format_br(vol_max)} ml"
                 })
         except Exception:
@@ -94,10 +92,8 @@ if col_nome:
         df_display = pd.DataFrame(dados_tabela)
         
         # --- ESTILIZAÇÃO DA TABELA (Pandas Styler) ---
-        # Aqui definimos as cores de texto e pesos de fonte
         def highlight_cols(x):
             df_styler = x.copy()
-            # Define Dataframe vazio de estilos
             df_styler.loc[:, :] = '' 
             return df_styler
 
@@ -108,12 +104,11 @@ if col_nome:
             .map(lambda v: 'color: #C62828; font-weight: bold;', subset=['Vol. Máximo'])\
             .map(lambda v: 'font-weight: 600; color: #333;', subset=['Medicação'])
 
-        # Exibe com column_config para ajustar larguras se necessário, mas o styler cuida das cores
         st.dataframe(
             styler, 
             use_container_width=True, 
             hide_index=True,
-            height=(len(df_display) + 1) * 35 + 3 # Altura dinâmica baseada nas linhas
+            height=(len(df_display) + 1) * 35 + 3
         )
     else:
         st.warning("Não foi possível calcular as doses.")
