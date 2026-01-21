@@ -1,94 +1,41 @@
-import pandas as pd
 import streamlit as st
-import base64
-import unicodedata
+from streamlit_gsheets import GSheetsConnection
+import pandas as pd
 
-# --- Tenta importar GSheets. Se não tiver instalado, apenas ignora. ---
-try:
-    import gspread
-    from oauth2client.service_account import ServiceAccountCredentials
-    GSHEETS_DISPONIVEL = True
-except ImportError:
-    GSHEETS_DISPONIVEL = False
+# Link da sua planilha
+SHEET_URL = "https://docs.google.com/spreadsheets/d/15Rxc1tYYmgG7Sikn2UOvz-GFN6jvneMHnA-l-O8keNs/edit?gid=0#gid=0"
 
-# --- 1. CONFIGURAÇÃO VISUAL ---
-def get_base64_of_bin_file(bin_file):
+def load_data(worksheet_name, csv_fallback=None):
     try:
-        with open(bin_file, 'rb') as f:
-            data = f.read()
-        return base64.b64encode(data).decode()
-    except:
-        return ""
+        conn = st.connection("gsheets", type=GSheetsConnection)
+        # ttl=0 obriga a ler os dados novos AGORA, ignorando o cache antigo
+        df = conn.read(spreadsheet=SHEET_URL, worksheet=worksheet_name, ttl=0)
+        return df
+    except Exception as e:
+        return pd.DataFrame()
 
-def set_background(png_file):
+def save_data_append(worksheet_name, new_data_row):
     try:
-        bin_str = get_base64_of_bin_file(png_file)
-        if bin_str:
-            page_bg_img = '''
-            <style>
-            .stApp {
-            background-image: url("data:image/png;base64,%s");
-            background-size: cover;
-            }
-            </style>
-            ''' % bin_str
-            st.markdown(page_bg_img, unsafe_allow_html=True)
-    except:
-        pass
-
-# --- 2. FUNÇÕES DE NORMALIZAÇÃO ---
-def normalize_col_name(col_name):
-    if not isinstance(col_name, str):
-        return str(col_name)
-    nfkd_form = unicodedata.normalize('NFKD', col_name)
-    without_accents = nfkd_form.encode('ASCII', 'ignore').decode('utf-8')
-    return without_accents.lower().strip().replace(' ', '_').replace('/', '_').replace('.', '')
-
-def clean_dataframe(df):
-    if df.empty: return df
-    df.columns = [normalize_col_name(c) for c in df.columns]
-    for col in df.columns:
-        if df[col].dtype == 'object':
-            df[col] = df[col].apply(lambda x: x.strip() if isinstance(x, str) else x)
-        if 'nome' not in col and 'apresentacao' not in col:
-            df[col] = pd.to_numeric(df[col], errors='ignore')
-    return df
-
-# --- 3. CARREGAMENTO INTELIGENTE ---
-@st.cache_data(ttl=600)
-def load_data(sheet_name, csv_fallback):
-    df = pd.DataFrame()
-    source = "Nenhum"
-
-    # TENTATIVA 1: GOOGLE SHEETS (Só tenta se a biblioteca estiver instalada)
-    if GSHEETS_DISPONIVEL:
-        try:
-            scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-            # Verifica se existe segredo configurado
-            if "gcp_service_account" in st.secrets:
-                creds_dict = dict(st.secrets["gcp_service_account"])
-                creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
-                client = gspread.authorize(creds)
-                sheet = client.open("IntensivaDB").worksheet(sheet_name)
-                data = sheet.get_all_records()
-                df = pd.DataFrame(data)
-                source = "Google Sheets ☁️"
-        except Exception as e:
-            # Falha silenciosa no GSheets, vai pro CSV
-            pass
-    
-    # TENTATIVA 2: CSV LOCAL
-    if df.empty:
-        try:
-            for enc in ['utf-8', 'latin1', 'iso-8859-1']:
-                try:
-                    df = pd.read_csv(csv_fallback, sep=';', decimal=',', encoding=enc)
-                    source = "Backup Local 📂"
-                    break
-                except UnicodeDecodeError:
-                    continue
-        except Exception:
-            st.error(f"Erro fatal: Não foi possível carregar dados ({csv_fallback}).")
-            return pd.DataFrame()
-
-    return clean_dataframe(df)
+        conn = st.connection("gsheets", type=GSheetsConnection)
+        # Lê a planilha REAL agora (sem cache)
+        existing_data = conn.read(spreadsheet=SHEET_URL, worksheet=worksheet_name, ttl=0)
+        
+        # --- DIAGNÓSTICO DE ERRO (Para sabermos o que acontece) ---
+        qtd_planilha = len(existing_data.columns)
+        qtd_codigo = len(new_data_row)
+        
+        # Se os números não baterem, ele vai te contar exatamente o porquê
+        if qtd_codigo != qtd_planilha:
+            st.error(f"❌ ERRO DE CONTAGEM: O código está enviando {qtd_codigo} dados, mas o Python achou {qtd_planilha} colunas na planilha.")
+            st.error("Motivo provável: O cache do Streamlit está lendo a versão antiga da planilha.")
+            return False
+            
+        # Se passou no teste, salva
+        new_df = pd.DataFrame([new_data_row], columns=existing_data.columns)
+        updated_df = pd.concat([existing_data, new_df], ignore_index=True)
+        conn.update(spreadsheet=SHEET_URL, worksheet=worksheet_name, data=updated_df)
+        return True
+        
+    except Exception as e:
+        st.error(f"Erro detalhado do Google: {e}")
+        return False

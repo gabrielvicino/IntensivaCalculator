@@ -21,7 +21,9 @@ pg = st.navigation({
         st.Page("views/intubacao.py", title="Intubação Orotraqueal", icon="⚡"),
         st.Page("views/conversao.py", title="Conversor Universal", icon="🔄"),
         st.Page("views/pacer.py", title="Pacer - Exames & Prescrição", icon="📃"),
-        # --- NOVA PÁGINA ADICIONADA ---
+        # --- PÁGINA NOVA ---
+        st.Page("views/evolucao.py", title="Evolução Diária", icon="📝"),
+        # -------------------
         st.Page("views/calculadoras.py", title="[EM CONSTRUÇÃO] Calculadoras Médicas", icon="🚧"),
     ],
 })
