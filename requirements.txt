@@ -1,8 +1,6 @@
 streamlit
 pandas
 streamlit-gsheets
-gspread==6.0.0
 google-generativeai
 openai
 Pillow
-protobuf
