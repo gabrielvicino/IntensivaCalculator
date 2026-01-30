@@ -3,10 +3,31 @@ from openai import OpenAI
 import json
 import streamlit as st
 
-def run_agent(prompt, provider, key):
+def run_agent(prompt, provider, key, model_name=None):
     try:
         if "Google" in provider:
-            model_name = 'gemini-1.5-flash' 
+            # Se não especificou modelo, extrai do provider ou usa padrão
+            if not model_name:
+                # Verificar se o provider contém o nome do modelo (ex: "Google Gemini gemini-2.5-flash")
+                if "gemini-" in provider:
+                    # Extrair o nome do modelo do provider
+                    parts = provider.split()
+                    for part in parts:
+                        if part.startswith("gemini-"):
+                            model_name = part
+                            break
+                # Se ainda não tem modelo, tenta detectar pela nomenclatura antiga
+                elif "2.5 Flash" in provider and "thinking" not in provider.lower():
+                    model_name = 'gemini-2.5-flash'
+                elif "2.5 Pro" in provider:
+                    model_name = 'gemini-2.5-pro'
+                elif "1.5 Pro" in provider:
+                    model_name = 'gemini-1.5-pro-002'
+                elif "Thinking" in provider or "thinking" in provider.lower():
+                    model_name = 'gemini-2.5-flash-thinking'
+                else:
+                    model_name = 'gemini-2.5-flash'  # Padrão: Gemini 2.5 Flash
+            
             try: 
                 model = genai.GenerativeModel(model_name)
                 resp = model.generate_content(prompt)
@@ -16,10 +37,21 @@ def run_agent(prompt, provider, key):
             txt = resp.text.replace("```json", "").replace("```", "").strip()
             return json.loads(txt)
 
-        elif "OpenAI" in provider:
+        elif "OpenAI" in provider or "GPT" in provider:
+            # Extrair o nome do modelo se vier no provider (ex: "OpenAI GPT gpt-4o-mini")
+            openai_model = "gpt-4o"  # Padrão
+            if "gpt-" in provider.lower():
+                parts = provider.split()
+                for part in parts:
+                    if part.lower().startswith("gpt-"):
+                        openai_model = part.lower()
+                        break
+            elif model_name:
+                openai_model = model_name
+            
             client = OpenAI(api_key=key)
             resp = client.chat.completions.create(
-                model="gpt-4o",
+                model=openai_model,
                 messages=[{"role": "system", "content": "You are a helpful assistant that outputs JSON."},
                           {"role": "user", "content": prompt}],
                 response_format={"type": "json_object"}

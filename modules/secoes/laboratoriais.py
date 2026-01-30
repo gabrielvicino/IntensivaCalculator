@@ -52,7 +52,7 @@ def _render_slot(i):
     with st.container(border=True):
         # Cabeçalho: Data
         c_tit, c_date = st.columns([2, 1], vertical_alignment="center")
-        c_tit.markdown(f"**📅 {titulo}**")
+        c_tit.markdown(f"**{titulo}**")
         c_date.text_input(f"Data #{i}", key=f'lab_{i}_data', placeholder="DD/MM", label_visibility="collapsed")
         
         # Removi o "---" daqui para não quebrar o visual
@@ -97,7 +97,7 @@ def _render_slot(i):
         with cols4[4]: st.text_input("TTPa", key=f'lab_{i}_ttpa')
 
         # LINHA 5: Urina (Sem separador visual, apenas label discreto)
-        st.caption("🧪 Urina (EAS)")
+        st.caption("Urina (EAS)")
         u1, u2, u3, u4, u5, u6, u7, u8 = st.columns(8)
         with u1: st.text_input("Dens", key=f'lab_{i}_ur_dens', placeholder="1035")
         with u2: st.text_input("L.Est", key=f'lab_{i}_ur_le', placeholder="Neg")
@@ -109,7 +109,7 @@ def _render_slot(i):
         with u8: st.text_input("Glic", key=f'lab_{i}_ur_glic', placeholder="Neg")
 
         # LINHA 6: Gasometria
-        st.caption("🫁 Gasometria")
+        st.caption("Gasometria")
         # Botão inline
         st.radio(f"Gaso #{i}", ["Arterial", "Venosa"], key=f'lab_{i}_gas_tipo', horizontal=True, label_visibility="collapsed")
         
@@ -138,13 +138,13 @@ def _render_slot(i):
 
         # LINHA 8: Outros
         st.text_input(
-            "➕ Outros", 
+            "Outros", 
             key=f'lab_{i}_outros', 
             placeholder="Ex: Culturas parciais, Níveis séricos, etc."
         )
 
         # LINHA 9: Conduta (EM LINHA, dentro do bloco)
-        with st.success("👉 Conduta / Análise"):
+        with st.success("Conduta / Análise"):
             st.text_input(
                 "Conduta Laboratorial", 
                 key=f"lab_{i}_conduta", 
@@ -163,7 +163,7 @@ def render():
     
     # --- 8 Datas OCULTAS ---
     st.write("")
-    with st.expander("➕ Ver histórico laboratorial antigo (Slots 3 a 10)"):
+    with st.expander("Ver histórico laboratorial antigo (Slots 3 a 10)"):
         for i in range(3, 11):
             _render_slot(i)
             st.write("")

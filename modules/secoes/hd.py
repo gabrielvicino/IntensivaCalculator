@@ -29,7 +29,7 @@ def get_campos():
 
 # Função Card ATUAL
 def _render_card_atual(i):
-    st.markdown(f"**🔹 HD Atual #{i}**")
+    st.markdown(f"**HD Atual #{i}**")
     
     with st.container(border=True):
         # LINHA 1: HD | Classificação | Data
@@ -46,12 +46,12 @@ def _render_card_atual(i):
         
         # LINHA 3: Conduta (CORREÇÃO DO ERRO AQUI)
         # Passamos o texto "Conduta #i" dentro do st.success para satisfazer o argumento 'body'
-        with st.success(f"👉 Conduta #{i}"):
+        with st.success(f"Conduta #{i}"):
             st.text_input("Conduta", key=f"hd_atual_{i}_conduta", label_visibility="collapsed", placeholder="Digite a conduta aqui...")
 
 # Função Card PRÉVIO
 def _render_card_previo(i):
-    st.markdown(f"**📜 Histórico / Resolvido #{i}**")
+    st.markdown(f"**Histórico / Resolvido #{i}**")
     with st.container(border=True):
         c1, c2, c3 = st.columns([3, 1.5, 1])
         c1.text_input(f"Diagnóstico Prévio #{i}", key=f"hd_prev_{i}_nome", placeholder="Ex: TEP")
@@ -69,14 +69,14 @@ def render():
     st.markdown("##### 2. Diagnósticos (HD) & Condutas")
     
     # --- A: HDS ATUAIS VISÍVEIS (1 e 2) ---
-    st.info("🔥 **Problemas Ativos**")
+    st.info("**Problemas Ativos**")
     _render_card_atual(1)
     st.write("") 
     _render_card_atual(2)
     
     # --- B: HDS ATUAIS EXTRAS (3 e 4) - ESCONDIDOS ---
     st.write("")
-    with st.expander("➕ Ver mais HDs Atuais (Slots 3 e 4)"):
+    with st.expander("Ver mais HDs Atuais (Slots 3 e 4)"):
         _render_card_atual(3)
         st.write("")
         _render_card_atual(4)
@@ -85,7 +85,7 @@ def render():
     st.write("")
 
     # --- C: HDS RESOLVIDOS (TODOS) - ESCONDIDOS ---
-    with st.expander("📂 **HDs Prévios / Resolvidos (Histórico Completo)**", expanded=False):
+    with st.expander("**HDs Prévios / Resolvidos (Histórico Completo)**", expanded=False):
         for i in range(1, 5):
             _render_card_previo(i)
             st.write("")

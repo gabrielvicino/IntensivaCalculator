@@ -37,6 +37,6 @@ def render():
         
     # --- 7 Comorbidades ESCONDIDAS (Ajuste Solicitado) ---
     st.write("")
-    with st.expander("➕ Ver mais Comorbidades (Slots 4 a 10)"):
+    with st.expander("Ver mais Comorbidades (Slots 4 a 10)"):
         for i in range(4, 11):
             _render_linha(i)

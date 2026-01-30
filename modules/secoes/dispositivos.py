@@ -58,7 +58,7 @@ def _render_linha(i):
             )
 
         with s3:
-            with st.success(f"👉 Conduta #{i}"):
+            with st.success(f"Conduta #{i}"):
                 st.text_input(
                     "Conduta", 
                     key=f"disp_{i}_conduta", 
@@ -76,6 +76,6 @@ def render():
         
     # --- 4 Itens OCULTOS ---
     st.write("")
-    with st.expander("➕ Ver mais Dispositivos (Slots 5 a 8)"):
+    with st.expander("Ver mais Dispositivos (Slots 5 a 8)"):
         for i in range(5, 9):
             _render_linha(i)

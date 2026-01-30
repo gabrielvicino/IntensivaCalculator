@@ -20,7 +20,7 @@ def get_campos():
 # Função auxiliar para desenhar UM card de medicação (Mais limpo agora)
 def _render_linha(i):
     with st.container(border=True):
-        st.markdown(f"**💊 Medicação #{i}**")
+        st.markdown(f"**Medicação #{i}**")
         
         # LINHA 1: Medicamento | Dose | Frequência
         c1, c2, c3 = st.columns([3, 1, 1.2], vertical_alignment="bottom")
@@ -41,7 +41,7 @@ def render():
     
     with st.container(border=True):
         # --- CONFIGURAÇÃO GLOBAL DE ADESÃO (NO TOPO) ---
-        st.markdown("**📊 Status de Adesão Prévia (Global):**")
+        st.markdown("**Status de Adesão Prévia (Global):**")
         st.radio(
             "Adesão Global", # Label oculta visualmente, usada internamente
             ["Uso Regular", "Uso Irregular / Falha Terapêutica"],
@@ -58,6 +58,6 @@ def render():
         
     # --- 7 Itens OCULTOS ---
     st.write("")
-    with st.expander("➕ Ver mais MUC (Slots 4 a 10)"):
+    with st.expander("Ver mais MUC (Slots 4 a 10)"):
         for i in range(4, 11):
             _render_linha(i)

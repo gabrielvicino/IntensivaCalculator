@@ -21,7 +21,7 @@ def render():
         )
         
         # Conduta em linha única (com destaque verde)
-        with st.success("👉 Conduta"):
+        with st.success("Conduta"):
             st.text_input(
                 "Conduta", 
                 key="compl_conduta", 

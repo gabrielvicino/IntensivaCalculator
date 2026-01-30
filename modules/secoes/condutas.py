@@ -18,7 +18,7 @@ def render():
             placeholder="1. Manter antibiótico (D3/10)\n2. Desmame da ventilação mecânica\n3. Solicitar Parecer Cardiologia"
         )
         
-        st.markdown("**⚠️ Pendências / Checagens**")
+        st.markdown("**Pendências / Checagens**")
         st.text_input(
             "O que não pode ser esquecido?", 
             key="conduta_pendencias", 

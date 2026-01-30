@@ -1,4 +1,5 @@
 import streamlit as st
+from utils import mostrar_rodape
 
 # ==============================================================================
 # 0. FUNÇÕES UTILITÁRIAS
@@ -300,3 +301,6 @@ else:
         ⚠️ Preencha os campos marcados com <span style="color:#d9480f">(*)</span> acima para ver os resultados
     </div>
     """, unsafe_allow_html=True)
+
+# Rodapé com nota legal
+mostrar_rodape()

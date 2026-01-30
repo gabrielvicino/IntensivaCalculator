@@ -78,7 +78,7 @@ def render():
             st.checkbox("Priorizar medidas para conforto (Paliativo)", key="paliativo")
 
         # --- PARTE D: OUTRAS ESCALAS (Expander) ---
-        with st.expander("⬇️ Outras Escalas (mRS, CFS)"):
+        with st.expander("Outras Escalas (mRS, CFS)"):
             st.caption("Preenchimento via IA ou manual.")
             e1, e2 = st.columns(2)
             with e1:

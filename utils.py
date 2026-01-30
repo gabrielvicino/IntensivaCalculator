@@ -12,7 +12,27 @@ def load_data(worksheet_name, csv_fallback=None):
         df = conn.read(spreadsheet=SHEET_URL, worksheet=worksheet_name, ttl=0)
         return df
     except Exception as e:
-        return pd.DataFrame()
+        # Se falhar ao conectar no Sheets, tenta carregar do CSV local
+        if csv_fallback:
+            try:
+                # Tenta diferentes encodings comuns
+                # CSV brasileiro usa ; como separador e , como decimal
+                for encoding in ['utf-8', 'latin-1', 'iso-8859-1', 'cp1252']:
+                    try:
+                        df = pd.read_csv(csv_fallback, encoding=encoding, sep=';', decimal=',')
+                        st.warning(f"⚠️ Usando dados locais ({csv_fallback}). Conexão com Google Sheets indisponível.")
+                        return df
+                    except UnicodeDecodeError:
+                        continue
+                # Se nenhum encoding funcionou
+                st.error(f"❌ Erro ao carregar CSV: problema de encoding")
+                return pd.DataFrame()
+            except Exception as csv_error:
+                st.error(f"❌ Erro ao carregar CSV: {csv_error}")
+                return pd.DataFrame()
+        else:
+            st.error(f"❌ Erro ao conectar com Google Sheets: {e}")
+            return pd.DataFrame()
 
 def save_data_append(worksheet_name, new_data_row):
     try:
@@ -39,3 +59,22 @@ def save_data_append(worksheet_name, new_data_row):
     except Exception as e:
         st.error(f"Erro detalhado do Google: {e}")
         return False
+
+def mostrar_rodape():
+    """Exibe rodapé padrão com nota legal em todas as páginas"""
+    st.markdown("---")
+    st.markdown(
+        """
+        <div style='text-align: center; padding: 20px 0; color: #666; font-size: 0.75em; line-height: 1.4;'>
+            <p style='margin: 0; color: #888; font-size: 0.85em;'>
+                <strong>Intensiva Calculator Pro</strong> | Dr. Gabriel Valladão Vicino - CRM-SP 223.216
+            </p>
+            <p style='margin: 8px 0 0 0; font-size: 0.75em; font-style: italic;'>
+                <strong>Nota Legal:</strong> Esta aplicação destina-se estritamente como ferramenta de auxílio à decisão clínica-assistencial. 
+                Não substitui o julgamento clínico individualizado. A responsabilidade final pela decisão terapêutica 
+                compete exclusivamente ao profissional habilitado.
+            </p>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )

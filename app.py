@@ -22,7 +22,7 @@ pg = st.navigation({
         st.Page("views/conversao.py", title="Conversor Universal", icon="🔄"),
         st.Page("views/pacer.py", title="Pacer - Exames & Prescrição", icon="📃"),
         # --- PÁGINA NOVA ---
-        st.Page("views/evolucao.py", title="Evolução Diária", icon="📝"),
+        st.Page("views/evolucao.py", title="[EM CONSTRUÇÃO] Evolução Diária", icon="🚧"),
         # -------------------
         st.Page("views/calculadoras.py", title="[EM CONSTRUÇÃO] Calculadoras Médicas", icon="🚧"),
     ],

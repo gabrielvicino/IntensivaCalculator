@@ -1,6 +1,6 @@
 import streamlit as st
 import pandas as pd
-from utils import load_data
+from utils import load_data, mostrar_rodape
 
 # ==============================================================================
 # 1. CONFIGURAÇÃO VISUAL E ESTILO
@@ -36,7 +36,7 @@ st.header("⚡ Intubação Orotraqueal")
 
 # --- CARREGAMENTO HÍBRIDO ---
 # Tenta pegar do Sheets (DB_IOT), se falhar pega do CSV local
-df_iot = load_data('DB_IOT', 'banco_dados_iot.csv')
+df_iot = load_data('DB_IOT', 'data/banco_dados_iot.csv')
 
 if df_iot.empty:
     st.error("Erro: Banco de dados não encontrado.")
@@ -115,3 +115,6 @@ if col_nome:
 
 else:
     st.error("Erro de Estrutura: Coluna de nome da medicação não encontrada.")
+
+# Rodapé com nota legal
+mostrar_rodape()

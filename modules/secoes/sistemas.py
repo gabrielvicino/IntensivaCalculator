@@ -133,9 +133,9 @@ def get_campos():
 def render():
     st.markdown("##### 12. Evolução Detalhada por Sistemas")
     
-    # 🧠 NEUROLÓGICO
+    # NEUROLÓGICO
     with st.container(border=True):
-        st.markdown("**🧠 Neurológico**")
+        st.markdown("**Neurológico**")
         c1, c2, c3 = st.columns(3)
         c1.selectbox("Consciência", ["Acordado", "Sonolento", "Coma", "Sedado"], key="sis_neuro_nivel")
         c2.text_input("Escala (GCS/FOUR/RASS)", key="sis_neuro_escala", placeholder="Ex: GCS 15 ou RASS -2")
@@ -151,13 +151,13 @@ def render():
         # Obs e Conduta
         st.markdown("---")
         o, c = st.columns([1, 1])
-        o.text_input("➕ Obs. Neuro", key="sis_neuro_obs", placeholder="Outros achados...")
+        o.text_input("Obs. Neuro", key="sis_neuro_obs", placeholder="Outros achados...")
         with c:
-            st.text_input("👉 Conduta Neuro", key="sis_neuro_conduta", placeholder="Ex: Desligar sedação, TC crânio...")
+            st.text_input("Conduta Neuro", key="sis_neuro_conduta", placeholder="Ex: Desligar sedação, TC crânio...")
 
-    # 🫁 RESPIRATÓRIO
+    # RESPIRATÓRIO
     with st.container(border=True):
-        st.markdown("**🫁 Respiratório**")
+        st.markdown("**Respiratório**")
         c1, c2 = st.columns([1, 2])
         c1.selectbox("Suporte", ["AA", "CNAF", "VNI", "IOT (VM)", "TQT"], key="sis_resp_suporte")
         c2.text_input("Parâmetros (Modo/PEEP/FiO2/Vt)", key="sis_resp_params", placeholder="PCV 14 | PEEP 8 | FiO2 40%")
@@ -175,13 +175,13 @@ def render():
         # Obs e Conduta
         st.markdown("---")
         o, c = st.columns([1, 1])
-        o.text_input("➕ Obs. Resp", key="sis_resp_obs")
+        o.text_input("Obs. Resp", key="sis_resp_obs")
         with c:
-            st.text_input("👉 Conduta Resp", key="sis_resp_conduta", placeholder="Ex: TRE amanhã, Aspirar SN...")
+            st.text_input("Conduta Resp", key="sis_resp_conduta", placeholder="Ex: TRE amanhã, Aspirar SN...")
 
-    # ❤️ CARDIOVASCULAR
+    # CARDIOVASCULAR
     with st.container(border=True):
-        st.markdown("**❤️ Cardiovascular**")
+        st.markdown("**Cardiovascular**")
         c1, c2, c3 = st.columns(3)
         c1.text_input("Ritmo", key="sis_cardio_ritmo", placeholder="Sinusal, FA")
         c2.text_input("FC / PA", key="sis_cardio_fc", placeholder="80 bpm / 65 mmHg (média)")
@@ -196,13 +196,13 @@ def render():
         # Obs e Conduta
         st.markdown("---")
         o, c = st.columns([1, 1])
-        o.text_input("➕ Obs. Cardio", key="sis_cardio_obs")
+        o.text_input("Obs. Cardio", key="sis_cardio_obs")
         with c:
-            st.text_input("👉 Conduta Cardio", key="sis_cardio_conduta", placeholder="Ex: Desmame de DVA, EcoTT...")
+            st.text_input("Conduta Cardio", key="sis_cardio_conduta", placeholder="Ex: Desmame de DVA, EcoTT...")
 
-    # 💧 RENAL
+    # RENAL
     with st.container(border=True):
-        st.markdown("**💧 Renal**")
+        st.markdown("**Renal**")
         c1, c2, c3 = st.columns(3)
         c1.selectbox("Função/KDIGO", ["Preservada", "IRA KDIGO 1", "IRA KDIGO 2", "IRA KDIGO 3"], key="sis_renal_func")
         c2.selectbox("Diurese", ["Preservada", "Oligúria", "Anúria", "Poliúria"], key="sis_renal_diurese")
@@ -213,13 +213,13 @@ def render():
         # Obs e Conduta
         st.markdown("---")
         o, c = st.columns([1, 1])
-        o.text_input("➕ Obs. Renal", key="sis_renal_obs", placeholder="Diagnóstico/Risco")
+        o.text_input("Obs. Renal", key="sis_renal_obs", placeholder="Diagnóstico/Risco")
         with c:
-            st.text_input("👉 Conduta Renal", key="sis_renal_conduta", placeholder="Ex: Ajustar dose ATB, Repor K...")
+            st.text_input("Conduta Renal", key="sis_renal_conduta", placeholder="Ex: Ajustar dose ATB, Repor K...")
 
-    # 🍬 METABÓLICO
+    # METABÓLICO
     with st.container(border=True):
-        st.markdown("**🍬 Metabólico / Endócrino**")
+        st.markdown("**Metabólico / Endócrino**")
         c1, c2, c3 = st.columns(3)
         c1.selectbox("Glicemia", ["Controlada", "Hiperglicemia", "Hipoglicemia"], key="sis_metab_glicemia")
         c2.selectbox("Insulina", ["Não", "SC Check", "Bomba Contínua"], key="sis_metab_insulina")
@@ -230,13 +230,13 @@ def render():
         # Obs e Conduta
         st.markdown("---")
         o, c = st.columns([1, 1])
-        o.text_input("➕ Obs. Metab", key="sis_metab_obs")
+        o.text_input("Obs. Metab", key="sis_metab_obs")
         with c:
-            st.text_input("👉 Conduta Metab", key="sis_metab_conduta", placeholder="Ex: Correção de acidose...")
+            st.text_input("Conduta Metab", key="sis_metab_conduta", placeholder="Ex: Correção de acidose...")
 
-    # 🦠 INFECCIOSO
+    # INFECCIOSO
     with st.container(border=True):
-        st.markdown("**🦠 Infeccioso**")
+        st.markdown("**Infeccioso**")
         c1, c2 = st.columns([1, 2])
         c1.selectbox("Síndrome", ["Sem infecção", "Sepse", "Choque Séptico", "Inf. Localizada"], key="sis_infec_status")
         c2.text_input("Foco / Estado", key="sis_infec_foco", placeholder="Pulmonar / Em melhora")
@@ -248,13 +248,13 @@ def render():
         # Obs e Conduta
         st.markdown("---")
         o, c = st.columns([1, 1])
-        o.text_input("➕ Obs. Infec", key="sis_infec_obs", placeholder="Risco de multirresistência...")
+        o.text_input("Obs. Infec", key="sis_infec_obs", placeholder="Risco de multirresistência...")
         with c:
-            st.text_input("👉 Conduta Infec", key="sis_infec_conduta", placeholder="Ex: Escalonar, manter ou suspender...")
+            st.text_input("Conduta Infec", key="sis_infec_conduta", placeholder="Ex: Escalonar, manter ou suspender...")
 
-    # 🍏 GASTROINTESTINAL
+    # GASTROINTESTINAL
     with st.container(border=True):
-        st.markdown("**🍏 Gastrointestinal**")
+        st.markdown("**Gastrointestinal**")
         c1, c2, c3 = st.columns(3)
         c1.selectbox("Função/Trânsito", ["Presente", "Íleo", "Intolerância"], key="sis_gastro_func")
         c2.selectbox("Abdome/Distensão", ["Flácido/Ausente", "Distendido", "Tenso"], key="sis_gastro_distensao")
@@ -265,13 +265,13 @@ def render():
         # Obs e Conduta
         st.markdown("---")
         o, c = st.columns([1, 1])
-        o.text_input("➕ Obs. Gastro", key="sis_gastro_obs")
+        o.text_input("Obs. Gastro", key="sis_gastro_obs")
         with c:
-            st.text_input("👉 Conduta Gastro", key="sis_gastro_conduta", placeholder="Ex: Procinético, Laxante...")
+            st.text_input("Conduta Gastro", key="sis_gastro_conduta", placeholder="Ex: Procinético, Laxante...")
 
-    # 🥗 NUTRICIONAL
+    # NUTRICIONAL
     with st.container(border=True):
-        st.markdown("**🥗 Nutricional**")
+        st.markdown("**Nutricional**")
         c1, c2, c3 = st.columns(3)
         c1.selectbox("Via", ["Oral (VO)", "SNE/SNG", "Parenteral (NPT)", "Oral + Enteral"], key="sis_nutri_via")
         c2.selectbox("Tolerância", ["Adequada", "Resíduo alto", "Vômitos"], key="sis_nutri_tol")
@@ -280,9 +280,9 @@ def render():
         # Obs e Conduta
         st.markdown("---")
         o, c = st.columns([1, 1])
-        o.text_input("➕ Obs. Nutri", key="sis_nutri_obs", placeholder="Risco broncoaspiração...")
+        o.text_input("Obs. Nutri", key="sis_nutri_obs", placeholder="Risco broncoaspiração...")
         with c:
-            st.text_input("👉 Conduta Nutri", key="sis_nutri_conduta", placeholder="Ex: Progredir dieta, Jejum...")
+            st.text_input("Conduta Nutri", key="sis_nutri_conduta", placeholder="Ex: Progredir dieta, Jejum...")
 
     # 🩸 HEMATOLÓGICO
     with st.container(border=True):
@@ -297,13 +297,13 @@ def render():
         # Obs e Conduta
         st.markdown("---")
         o, c = st.columns([1, 1])
-        o.text_input("➕ Obs. Hemato", key="sis_hemato_obs")
+        o.text_input("Obs. Hemato", key="sis_hemato_obs")
         with c:
-            st.text_input("👉 Conduta Hemato", key="sis_hemato_conduta", placeholder="Ex: Transfundir, Suspender Enoxa...")
+            st.text_input("Conduta Hemato", key="sis_hemato_conduta", placeholder="Ex: Transfundir, Suspender Enoxa...")
 
-    # 🛡️ PELE & DISPOSITIVOS
+    # PELE & DISPOSITIVOS
     with st.container(border=True):
-        st.markdown("**🛡️ Pele / Dispositivos / IRAS**")
+        st.markdown("**Pele / Dispositivos / IRAS**")
         c1, c2 = st.columns(2)
         c1.selectbox("Pele / LPP", ["Íntegra", "LPP Estágio 1/2", "LPP Grave"], key="sis_pele_integra")
         c2.selectbox("Dispositivos/Infecção", ["Limpos/Sem sinais", "Sinais flogisticos", "Secreção purulenta"], key="sis_pele_disp")
@@ -313,6 +313,6 @@ def render():
         # Obs e Conduta
         st.markdown("---")
         o, c = st.columns([1, 1])
-        o.text_input("➕ Obs. Pele", key="sis_pele_obs")
+        o.text_input("Obs. Pele", key="sis_pele_obs")
         with c:
-            st.text_input("👉 Conduta Pele", key="sis_pele_conduta", placeholder="Ex: Curativo, Mudança de decúbito...")
+            st.text_input("Conduta Pele", key="sis_pele_conduta", placeholder="Ex: Curativo, Mudança de decúbito...")

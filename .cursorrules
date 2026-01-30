@@ -1,3 +1,20 @@
+# ⚠️ INSTRUÇÕES CRÍTICAS (LEIA PRIMEIRO)
+
+## 🚫 REGRA 1: NÃO COMMITAR AUTOMATICAMENTE
+**NUNCA faça `git commit` ou `git push` durante o desenvolvimento.**
+- Apenas crie commits quando o usuário **EXPLICITAMENTE** pedir: "atualize o GitHub", "faça commit", "salve no git", etc.
+- Durante o desenvolvimento: apenas edite arquivos, teste código, limpe cache.
+- No final da sessão: espere o usuário pedir para commitar.
+
+## 🔒 REGRA 2: PROJETO ACRESCENTATIVO - NÃO ALTERE CÓDIGO EXISTENTE
+**Este projeto é ACRESCENTATIVO. NÃO modifique código que já está funcionando a menos que seja EXPLICITAMENTE solicitado.**
+- ✅ **PODE:** Adicionar novos campos, criar novas funções, expandir funcionalidades existentes.
+- ❌ **NÃO PODE:** Refatorar código antigo, mudar nomes de variáveis, alterar lógica existente, "melhorar" código não mencionado.
+- **Exemplo:** Se o usuário pedir "adicione campo de glicemia", apenas adicione o campo. NÃO reorganize todo o formulário, NÃO mude outros campos não relacionados.
+- **Se algo parecer "desatualizado" ou "inconsistente":** IGNORE. Só mude se o usuário pedir explicitamente.
+
+---
+
 # 🧠 PERFIL DO ASSISTENTE
 Você é um Engenheiro de Software Sênior especializado em Python, Streamlit e Informática Médica (Health Tech).
 Você está desenvolvendo o **Intensiva Calculator**, uma plataforma de suporte à decisão clínica para UTI e Emergência.
@@ -66,7 +83,31 @@ Seu foco é criar código limpo, seguro, performático e visualmente profissiona
 ---
 
 # 🚀 COMPORTAMENTO DO CURSOR
+
+## Workflow de Desenvolvimento
 1. **Analise antes de escrever:** Leia os arquivos importados para entender o contexto.
 2. **Edição Cirúrgica:** Ao sugerir código com `Ctrl + K`, mantenha o estilo existente. Se o arquivo usa aspas duplas, use aspas duplas.
-3. **Explicação:** Se você tiver que criar um novo arquivo ou alterar a estrutura, explique o motivo brevemente.
-4. **Idioma:** Responda sempre em **Português do Brasil**.
+3. **Mudanças Mínimas:** Altere APENAS o que foi pedido. Não "melhore" ou refatore código não mencionado.
+4. **Explicação:** Se você tiver que criar um novo arquivo ou alterar a estrutura, explique o motivo brevemente.
+5. **Idioma:** Responda sempre em **Português do Brasil**.
+
+## Git & Versionamento
+- **Durante o desenvolvimento:** Edite arquivos, teste, limpe cache. NÃO commite.
+- **Quando o usuário pedir "atualize o GitHub":** 
+  1. Execute `git add` nos arquivos alterados
+  2. Crie commit com mensagem descritiva
+  3. Execute `git push origin main`
+- **Nunca use:** `git commit --amend`, `git push --force`, ou comandos destrutivos sem autorização explícita.
+
+## Permissões e Comandos Shell
+**SEMPRE use `required_permissions: ["all"]` nos seguintes casos:**
+- Comandos Git (add, commit, push, status, diff)
+- Limpeza de cache (`Remove-Item __pycache__`)
+- Testes de importação Python
+- Operações com arquivos do sistema
+- Comandos que acessam múltiplos diretórios
+
+**Agrupe comandos sempre que possível:**
+- Use `&&` para encadear comandos relacionados (ex: `git add . && git commit && git push`)
+- Evite múltiplas chamadas Shell quando uma única chamada resolve
+- Exemplo: `Remove-Item cache1, cache2, cache3` em vez de 3 comandos separados

@@ -1,4 +1,5 @@
 import streamlit as st
+from utils import mostrar_rodape
 
 # Importando as pílulas (módulos)
 # Nota: Você precisará criar os arquivos vazios nas outras pastas para não dar erro,
@@ -37,3 +38,6 @@ elif "Ventilação" in categoria:
 
 else:
     st.info("Selecione uma categoria acima para começar.")
+
+# Rodapé com nota legal
+mostrar_rodape()

@@ -1,4 +1,5 @@
 import streamlit as st
+from utils import mostrar_rodape
 import google.generativeai as genai
 from openai import OpenAI
 
@@ -31,14 +32,61 @@ st.markdown("""
 # 2. PROMPTS E MODELOS
 # ==============================================================================
 
-# LISTA ATUALIZADA (Incluindo Thinking e Flash 8b)
+# ==============================================================================
+# LISTA COMPLETA DE MODELOS CANDIDATOS (Todos os Gemini)
+# ==============================================================================
 CANDIDATOS_GEMINI = [
-    "gemini-2.0-flash-thinking-exp-1219", # NOVO: Raciocínio profundo (Ótimo para medicina)
-    "gemini-2.0-flash-exp",                # O mais rápido e versátil atual
-    "gemini-exp-1206",                     # Modelo experimental de alta performance
-    "gemini-1.5-pro",                      # Estável (Pro)
-    "gemini-1.5-flash",                    # Estável (Flash)
-    "gemini-1.5-flash-8b"                  # Ultra rápido e leve
+    # === GEMINI 2.5 (Janeiro 2026 - MAIS RECENTES) ===
+    "gemini-2.5-flash",                    # RECOMENDADO: Mais rápido e recente
+    "gemini-2.5-flash-preview-0205",       # Preview específico
+    "gemini-2.5-flash-preview-01-17",      # Preview de janeiro
+    "gemini-2.5-pro",                      # Máxima inteligência 2.5
+    "gemini-2.5-pro-preview-0205",         # Preview Pro
+    "gemini-2.5-pro-preview-01-17",        # Preview Pro janeiro
+    "gemini-2.5-flash-thinking",           # Raciocínio avançado 2.5
+    "gemini-2.5-flash-thinking-exp",       # Experimental thinking
+    "gemini-2.5-flash-thinking-exp-01-21", # Experimental específico
+    
+    # === GEMINI 2.0 (Dezembro 2025 - Descontinuados em Fevereiro 2026) ===
+    "gemini-2.0-flash",                    # Flash 2.0 padrão
+    "gemini-2.0-flash-exp",                # Experimental 2.0
+    "gemini-2.0-flash-thinking-exp",       # Thinking experimental 2.0
+    "gemini-2.0-flash-thinking-exp-1219",  # Versão específica
+    
+    # === GEMINI 1.5 PRO (Estáveis - 2M tokens) ===
+    "gemini-1.5-pro",                      # Pro sem sufixo (latest)
+    "gemini-1.5-pro-latest",               # Última versão stable
+    "gemini-1.5-pro-002",                  # Versão stable 002
+    "gemini-1.5-pro-001",                  # Versão stable 001
+    "gemini-1.5-pro-exp-0827",             # Experimental agosto
+    "gemini-1.5-pro-exp-0801",             # Experimental agosto
+    
+    # === GEMINI 1.5 FLASH (Estáveis - Rápidos) ===
+    "gemini-1.5-flash",                    # Flash sem sufixo (latest)
+    "gemini-1.5-flash-latest",             # Última versão stable
+    "gemini-1.5-flash-002",                # Versão stable 002
+    "gemini-1.5-flash-001",                # Versão stable 001
+    "gemini-1.5-flash-8b",                 # Versão 8B (mais leve)
+    "gemini-1.5-flash-8b-latest",          # 8B latest
+    "gemini-1.5-flash-8b-001",             # 8B versão 001
+    "gemini-1.5-flash-8b-exp-0827",        # 8B experimental agosto
+    "gemini-1.5-flash-8b-exp-0924",        # 8B experimental setembro
+    "gemini-1.5-flash-exp-0827",           # Experimental agosto
+    
+    # === GEMINI EXPERIMENTAL (Previews e Testes) ===
+    "gemini-exp-1206",                     # Experimental dezembro 2024
+    "gemini-exp-1121",                     # Experimental novembro 2024
+    "gemini-exp-1114",                     # Experimental novembro 2024
+    "gemini-exp-1005",                     # Experimental outubro 2024
+    
+    # === GEMINI 1.0 (Legado - Descontinuados) ===
+    "gemini-pro",                          # Pro 1.0 (legado)
+    "gemini-pro-vision",                   # Vision 1.0 (legado)
+    "gemini-1.0-pro",                      # 1.0 Pro explícito
+    "gemini-1.0-pro-latest",               # 1.0 Pro latest
+    "gemini-1.0-pro-001",                  # 1.0 Pro versão 001
+    "gemini-1.0-pro-vision",               # 1.0 Vision
+    "gemini-1.0-pro-vision-latest",        # 1.0 Vision latest
 ]
 
 # --- PROMPT EXAMES (Lista Limpa) ---
@@ -573,12 +621,13 @@ def limpar_campos(lista_chaves):
 
 if "pacer_google_key" not in st.session_state: st.session_state.pacer_google_key = ""
 if "pacer_openai_key" not in st.session_state: st.session_state.pacer_openai_key = ""
-# Inicializa lista com o novo modelo Thinking já incluído por padrão
+# Inicializa lista com modelos Gemini 2.5 (MAIS RECENTES)
 if "lista_modelos_validos" not in st.session_state: 
     st.session_state.lista_modelos_validos = [
-        "gemini-2.0-flash-thinking-exp-1219", 
-        "gemini-2.0-flash-exp",
-        "gemini-exp-1206"
+        "gemini-2.5-flash",              # RECOMENDADO: Mais rápido
+        "gemini-2.5-pro",                # Máxima qualidade
+        "gemini-2.5-flash-thinking",     # Raciocínio avançado
+        "gemini-1.5-pro-002"             # Maior contexto
     ]
 
 st.header("📃 Pacer - Exames & Prescrição")
@@ -586,8 +635,8 @@ st.header("📃 Pacer - Exames & Prescrição")
 with st.sidebar:
     st.header("Configurações")
     
-    # ALTERAÇÃO AQUI: OpenAI primeiro na lista torna ele o padrão
-    motor_escolhido = st.radio("IA Padrão:", ["OpenAI GPT", "Google Gemini"])
+    # Google Gemini como padrão (Gemini 2.5 Flash)
+    motor_escolhido = st.radio("IA Padrão:", ["Google Gemini", "OpenAI GPT"], index=0)
     
     if motor_escolhido == "Google Gemini":
         sk_google = st.text_input("Gemini API Key", value=st.session_state.pacer_google_key, type="password")
@@ -595,9 +644,25 @@ with st.sidebar:
         
         if st.button("🔄 Atualizar Modelos"):
             validos = verificar_modelos_ativos(sk_google)
-            if validos: st.session_state.lista_modelos_validos = validos
+            if validos:
+                st.session_state.lista_modelos_validos = validos
+                st.success(f"✅ {len(validos)} modelos encontrados!")
         
         modelo_escolhido = st.selectbox("Modelo:", st.session_state.lista_modelos_validos)
+        
+        # Info sobre o modelo selecionado
+        if "2.5-flash" in modelo_escolhido and "thinking" not in modelo_escolhido:
+            st.success("⚡ Gemini 2.5 Flash: Mais rápido e recente (RECOMENDADO)")
+        elif "2.5-pro" in modelo_escolhido:
+            st.info("🤖 Gemini 2.5 Pro: Máxima inteligência")
+        elif "1.5-pro" in modelo_escolhido:
+            st.info("📚 Gemini 1.5 Pro: Maior contexto (2M tokens)")
+        elif "thinking" in modelo_escolhido:
+            st.info("🤔 Gemini Thinking: Raciocínio avançado")
+        elif "1.5-flash-8b" in modelo_escolhido:
+            st.info("💡 Gemini 1.5 Flash 8B: Mais leve e econômico")
+        elif "1.5-flash" in modelo_escolhido:
+            st.info("⚡ Gemini 1.5 Flash: Rápido e eficiente")
         
     else: # OpenAI (Agora é o Default)
         modelo_escolhido = st.selectbox("Modelo:", ["gpt-4o", "gpt-4o-mini"])
@@ -662,3 +727,6 @@ with tab3:
     col_p1, col_p2 = st.columns(2)
     with col_p1: st.text_area("Prompt Exames via API", value=PROMPT_EXAMES_PADRAO, height=300) 
     with col_p2: st.text_area("Prompt Prescrição via API", value=PROMPT_PRESCRICAO_PADRAO, height=300)
+
+# Rodapé com nota legal
+mostrar_rodape()

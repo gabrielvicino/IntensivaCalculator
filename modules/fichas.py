@@ -42,10 +42,10 @@ def inicializar_estado():
 
 def render_formulario_completo():
     
-    # --- CSS: ESTILO ÚNICO "AMARELO PROFISSIONAL" (UNIFICADO) ---
+    # --- CSS: ESTILO DISCRETO PARA EXPANDERS E DESTAQUE VERDE PARA CONDUTAS ---
     st.markdown("""
     <style>
-        /* ================= GERAL ================= */
+        /* ================= EXPANDERS DISCRETOS ================= */
         [data-testid="stExpander"] { 
             border: none !important; 
             box-shadow: none !important; 
@@ -53,51 +53,54 @@ def render_formulario_completo():
         }
         
         [data-testid="stExpander"] details {
-            border-radius: 8px !important;
-            border: 1px solid #e5e7eb !important;
-            background-color: #ffffff;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-            margin-bottom: 0px !important; 
+            border-radius: 4px !important;
+            border: 1px solid #f0f0f0 !important;
+            background-color: #fafafa;
+            box-shadow: none;
+            margin-bottom: 8px !important; 
         }
 
-        /* Texto do Título */
+        /* Texto do Título - Menor e mais discreto */
         [data-testid="stExpander"] details summary p {
-            font-size: 1.15rem !important;
-            font-weight: 600 !important;
+            font-size: 0.95rem !important;
+            font-weight: 500 !important;
             margin: 0 !important;
+            color: #666 !important;
         }
         
-        /* Base da Barra de Título (Fallback) */
+        /* Base da Barra de Título - Mais compacta */
         [data-testid="stExpander"] details summary {
-            background-color: #f9fafb !important;
-            padding: 1rem 1.2rem !important;
-            transition: all 0.2s ease;
-            border-left: 6px solid #ccc; 
-        }
-
-        /* ================= A MÁGICA DO AMARELO ================= */
-        /* Aplica o estilo a qualquer expander precedido pela tag .yellow-tag */
-        
-        /* 1. Borda Lateral Amarela (Âmbar Suave) */
-        div:has(.yellow-tag) + div details summary {
-            border-left-color: #f59e0b !important; /* Âmbar 500 */
+            background-color: transparent !important;
+            padding: 0.6rem 0.8rem !important;
+            transition: all 0.15s ease;
+            border-left: 3px solid #e8e8e8; 
+            min-height: auto !important;
         }
         
-        /* 2. Texto Marrom/Dourado (Legível) */
-        div:has(.yellow-tag) + div details summary p {
-            color: #92400e !important; /* Âmbar 800 */
+        /* Hover sutil */
+        [data-testid="stExpander"] details:hover summary {
+            background-color: #f5f5f5 !important;
         }
         
-        /* 3. Ícone da Seta Amarelo */
-        div:has(.yellow-tag) + div details summary svg {
-            fill: #f59e0b !important; 
-            color: #f59e0b !important;
+        /* ================= DESTAQUE VERDE PARA CONDUTAS ================= */
+        /* Estiliza containers de sucesso (st.success) que contêm condutas */
+        [data-testid="stAlert"][data-baseweb="notification"] {
+            background-color: #e8f5e9 !important;
+            border-left: 4px solid #4caf50 !important;
+            padding: 0.5rem 0.75rem !important;
         }
         
-        /* 4. Fundo ao passar o mouse ou abrir (Creme Suave) */
-        div:has(.yellow-tag) + div details[open] summary,
-        div:has(.yellow-tag) + div details:hover summary {
-            background-color: #fffbeb !important; /* Âmbar 50 */
+        /* Inputs dentro de containers de sucesso */
+        [data-testid="stAlert"] input,
+        [data-testid="stAlert"] textarea {
+            background-color: #f1f8f4 !important;
+            border: 1px solid #81c784 !important;
+        }
+        
+        [data-testid="stAlert"] input:focus,
+        [data-testid="stAlert"] textarea:focus {
+            border-color: #4caf50 !important;
+            box-shadow: 0 0 0 1px #4caf50 !important;
         }
 
     </style>
@@ -106,7 +109,6 @@ def render_formulario_completo():
     # ==========================================
     # 1. DADOS DO PACIENTE
     # ==========================================
-    st.markdown('<div class="yellow-tag" style="display:none;"></div>', unsafe_allow_html=True)
     with st.expander("Dados do Paciente", expanded=False):
         st.caption("Dados estáticos de entrada.")
         identificacao.render()      
@@ -125,10 +127,6 @@ def render_formulario_completo():
     # ==========================================
     # 2. DADOS CLÍNICOS
     # ==========================================
-    # Marcador AMARELO
-    st.markdown('<div class="yellow-tag" style="display:none;"></div>', unsafe_allow_html=True)
-    
-    # Título Alterado: "Dados Clínicos"
     with st.expander("Evolução Horizontal", expanded=False):
         st.caption("Visão longitudinal: Dispositivos, Infectologia e Exames Complementares.")
         
@@ -146,7 +144,6 @@ def render_formulario_completo():
     # ==========================================
     # 3. EVOLUÇÃO DIÁRIA
     # ==========================================
-    st.markdown('<div class="yellow-tag" style="display:none;"></div>', unsafe_allow_html=True)
     with st.expander("Evolução Diária", expanded=True):
         st.caption("Rotina de hoje.")
         

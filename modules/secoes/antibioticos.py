@@ -28,7 +28,7 @@ def get_campos():
 
 # Função Card ATUAL
 def _render_atual(i):
-    st.markdown(f"**💊 Antibiótico Atual #{i}**")
+    st.markdown(f"**Antibiótico Atual #{i}**")
     with st.container(border=True):
         # LINHA 1: Nome | Tipo (Bola)
         c1, c2 = st.columns([2, 1.5], vertical_alignment="center")
@@ -51,7 +51,7 @@ def _render_atual(i):
             st.text_input("Término Previsto", key=f"atb_curr_{i}_data_fim", placeholder="DD/MM (Planejado)")
             
         # LINHA 3: Conduta (Verde)
-        with st.success(f"👉 Conduta #{i}"):
+        with st.success(f"Conduta #{i}"):
             st.text_input(
                 "Conduta", 
                 key=f"atb_curr_{i}_conduta", 
@@ -61,7 +61,7 @@ def _render_atual(i):
 
 # Função Card PRÉVIO
 def _render_previo(i):
-    st.markdown(f"**📜 Antibiótico Prévio #{i}**")
+    st.markdown(f"**Antibiótico Prévio #{i}**")
     with st.container(border=True):
         # LINHA 1: Nome | Tipo
         c1, c2 = st.columns([2, 1.5], vertical_alignment="center")
@@ -97,13 +97,13 @@ def render():
     st.markdown("##### 8. Antibióticos (Prévios e Atuais)")
     
     # --- SEÇÃO ATUAIS ---
-    st.info("🔥 **Em Uso (Atuais)**")
+    st.info("**Em Uso (Atuais)**")
     # 3 Visíveis
     for i in range(1, 4):
         _render_atual(i)
         st.write("")
         
-    with st.expander("➕ Ver mais ATB Atuais (Slots 4 e 5)"):
+    with st.expander("Ver mais ATB Atuais (Slots 4 e 5)"):
         _render_atual(4)
         st.write("")
         _render_atual(5)
@@ -112,12 +112,12 @@ def render():
     st.markdown("---")
 
     # --- SEÇÃO PRÉVIOS ---
-    st.warning("📂 **Histórico (Prévios)**")
+    st.warning("**Histórico (Prévios)**")
     # 2 Visíveis
     for i in range(1, 3):
         _render_previo(i)
         st.write("")
         
-    with st.expander("➕ Ver mais ATB Prévios (Slots 3 a 5)"):
+    with st.expander("Ver mais ATB Prévios (Slots 3 a 5)"):
         for i in range(3, 6):
             _render_previo(i)

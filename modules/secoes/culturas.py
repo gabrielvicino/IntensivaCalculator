@@ -50,7 +50,7 @@ def _render_linha(i):
             st.text_input(f"Perfil Sensibilidade #{i}", key=f"cult_{i}_sensib", placeholder="Ex: Sensível a Polimixina B")
 
         # LINHA 4: Conduta
-        with st.success(f"👉 Conduta #{i}"):
+        with st.success(f"Conduta #{i}"):
             st.text_input(
                 "Conduta", 
                 key=f"cult_{i}_conduta", 
@@ -68,6 +68,6 @@ def render():
         
     # --- 4 Itens OCULTOS ---
     st.write("")
-    with st.expander("➕ Ver mais Culturas (Slots 5 a 8)"):
+    with st.expander("Ver mais Culturas (Slots 5 a 8)"):
         for i in range(5, 9):
             _render_linha(i)

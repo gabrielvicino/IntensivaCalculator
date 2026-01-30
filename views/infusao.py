@@ -1,6 +1,6 @@
 import streamlit as st
 import pandas as pd
-from utils import load_data
+from utils import load_data, mostrar_rodape
 
 # ==============================================================================
 # 1. CONFIGURAÇÃO VISUAL
@@ -44,7 +44,7 @@ def format_br(valor, casas=1):
 # ==============================================================================
 st.header("💉 Calculadora de Infusão")
 
-df_inf = load_data('DB_INFUSAO', 'banco_dados_infusao.csv')
+df_inf = load_data('DB_INFUSAO', 'data/banco_dados_infusao.csv')
 
 if df_inf.empty:
     st.error("Erro: Banco de dados não encontrado (Verifique conexão ou arquivos CSV).")
@@ -245,3 +245,5 @@ if droga_nome:
                 else: 
                     st.success("✅ Dentro da faixa segura.")
             except: pass
+# Rodapé com nota legal
+mostrar_rodape()
