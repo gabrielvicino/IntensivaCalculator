@@ -1241,11 +1241,11 @@ if "lista_modelos_validos" not in st.session_state:
 st.header("📃 Pacer - Exames & Prescrição")
 
 # CONFIGURAÇÃO FIXA: OpenAI GPT-4o
-# Carrega chave do arquivo .env
+# Carrega chave do arquivo .env (local) ou Streamlit Secrets (cloud)
 import os
 from pathlib import Path
 
-# Tenta carregar do .env usando python-dotenv
+# Tenta carregar do .env usando python-dotenv (para desenvolvimento local)
 try:
     from dotenv import load_dotenv
     # Busca arquivo .env no diretório raiz do projeto
@@ -1254,19 +1254,36 @@ try:
 except ImportError:
     pass  # python-dotenv não instalado, continua sem ele
 
-# Lê a chave da variável de ambiente (.env)
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
+# Lê a chave da variável de ambiente (.env) ou Streamlit Secrets
+OPENAI_API_KEY = ""
 
-# IMPORTANTE: Configure sua chave no arquivo .env
-# Crie um arquivo .env na raiz do projeto com:
-# OPENAI_API_KEY=sua-chave-aqui
+# Prioridade 1: Streamlit Secrets (para Streamlit Cloud)
+try:
+    if hasattr(st, 'secrets') and "OPENAI_API_KEY" in st.secrets:
+        OPENAI_API_KEY = st.secrets["OPENAI_API_KEY"]
+except Exception:
+    pass
+
+# Prioridade 2: Variável de ambiente (para local com .env)
 if not OPENAI_API_KEY:
-    raise ValueError(
-        "❌ API Key não configurada!\n\n"
-        "Por favor, crie um arquivo .env na raiz do projeto com:\n"
-        "OPENAI_API_KEY=sua-chave-openai-aqui\n\n"
-        "Veja .env.example para um modelo."
+    OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
+
+# IMPORTANTE: Configure sua chave
+# LOCAL: Crie arquivo .env com OPENAI_API_KEY=sua-chave
+# CLOUD: Configure em Settings > Secrets no Streamlit Cloud
+if not OPENAI_API_KEY:
+    st.error(
+        "❌ **API Key não configurada!**\n\n"
+        "**Para uso local:** Crie um arquivo `.env` na raiz do projeto com:\n"
+        "```\n"
+        "OPENAI_API_KEY=sua-chave-openai-aqui\n"
+        "```\n\n"
+        "**Para Streamlit Cloud:** Configure em `Settings > Secrets`:\n"
+        "```toml\n"
+        "OPENAI_API_KEY = \"sua-chave-aqui\"\n"
+        "```"
     )
+    st.stop()
 
 motor_escolhido = "OpenAI GPT"
 modelo_escolhido = "gpt-4o"
