@@ -1086,15 +1086,22 @@ def processar_multi_agente(api_source, api_key, model_name, agentes_selecionados
             for agente_id in agentes_selecionados
         }
         
-        # Coleta resultados conforme terminam (ordem de conclusão)
+        # Coleta resultados conforme terminam (em dicionário para preservar ordem)
+        resultados_dict = {}
         for future in as_completed(future_to_agente):
             agente_id = future_to_agente[future]
             try:
                 resultado = future.result(timeout=60)  # Timeout de 60s por agente
                 if resultado:
-                    exames_concatenados.append(resultado)
+                    resultados_dict[agente_id] = resultado
             except Exception as e:
                 print(f"[PARALELO] Exceção ao processar agente '{agente_id}': {str(e)}")
+    
+    # IMPORTANTE: Ordena resultados pela ordem FIXA dos agentes (não por conclusão)
+    # Mantém a ordem: Hematologia/Renal > Gastro > Cardio/Coag > Urina > Gasometria
+    for agente_id in agentes_selecionados:
+        if agente_id in resultados_dict:
+            exames_concatenados.append(resultados_dict[agente_id])
     
     tempo_extracao = time.time() - tempo_inicio
     print(f"[PARALELO] Extração completa em {tempo_extracao:.1f}s (vs ~15s sequencial)")
