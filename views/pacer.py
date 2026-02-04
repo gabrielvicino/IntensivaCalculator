@@ -1064,11 +1064,11 @@ def processar_multi_agente(api_source, api_key, model_name, agentes_selecionados
     else:
         resultado_exames = f"{nome_hc}\n{data_linha} (Nenhum dado laboratorial encontrado)"
     
-    # PASSO 4: Análise clínica (AGENTE 6)
-    # Sempre processa, mesmo se não houver dados
+    # PASSO 4: Análise clínica (AGENTE 6) - OPCIONAL
     analise_clinica = ""
-    if exames_concatenados:
+    if executar_analise and exames_concatenados:
         try:
+            print("[DEBUG] Executando Agente 6 (Análise Clínica)...")
             analise_clinica = processar_texto(
                 api_source, api_key, model_name,
                 PROMPT_AGENTE_ANALISE,
@@ -1088,6 +1088,8 @@ def processar_multi_agente(api_source, api_key, model_name, agentes_selecionados
         except Exception as e:
             print(f"[DEBUG] Exceção no Agente 6: {str(e)}")
             analise_clinica = ""
+    elif not executar_analise:
+        print("[DEBUG] Agente 6 desabilitado pelo usuário")
     else:
         print("[DEBUG] exames_concatenados está vazio, não processando Agente 6")
     
@@ -1273,9 +1275,18 @@ with st.sidebar:
     
     # Debug: mostra se API key foi carregada
     if OPENAI_API_KEY and len(OPENAI_API_KEY) > 10:
-        st.success(f"✅ API Key: ...{OPENAI_API_KEY[-8:]}")
+        st.success(f"✅ API Key: ...{OPENAI_API[-8:]}")
     else:
         st.error("❌ API Key não carregada!")
+    
+    st.divider()
+    
+    # Opção para Análise Clínica (Agente 6)
+    usar_analise = st.checkbox(
+        "Análise Clínica (CDSS)", 
+        value=True,
+        help="Gera hipóteses diagnósticas baseadas nos exames alterados"
+    )
     
     st.divider()
 
@@ -1345,22 +1356,30 @@ with tab1:
     with col2:
         st.markdown("**Resultado dos Exames**")
         if processar:
-            with st.spinner("Processando exames com 6 agentes especializados..."):
+            # Define mensagem do spinner baseado em usar_analise
+            if usar_analise:
+                msg_spinner = "Processando exames com 6 agentes especializados..."
+            else:
+                msg_spinner = "Processando exames com 5 agentes de extração..."
+            
+            with st.spinner(msg_spinner):
                 # USA A NOVA FUNÇÃO MULTI-AGENTE COM TODOS OS AGENTES
                 resultado_exames, analise_clinica = processar_multi_agente(
                     motor_escolhido,
                     OPENAI_API_KEY,
                     modelo_escolhido,
                     agentes_ativos,  # TODOS OS AGENTES SEMPRE
-                    input_val
+                    input_val,
+                    executar_analise=usar_analise  # Novo parâmetro
                 )
                 st.session_state["output_exames"] = resultado_exames
-                st.session_state["output_analise"] = analise_clinica
+                st.session_state["output_analise"] = analise_clinica if usar_analise else ""
                 
                 # Debug: mostra informação no terminal
                 print(f"\n[INFO] Processamento concluído:")
                 print(f"  - Resultado exames: {len(resultado_exames)} chars")
-                print(f"  - Análise clínica: {len(analise_clinica)} chars")
+                print(f"  - Análise clínica: {len(analise_clinica) if analise_clinica else 0} chars")
+                print(f"  - Análise ativada: {usar_analise}")
                 print(f"  - Análise tem conteúdo: {bool(analise_clinica and len(analise_clinica.strip()) > 0)}\n")
         
         # EXIBIÇÃO DO RESULTADO DOS EXAMES
@@ -1374,27 +1393,28 @@ with tab1:
             st.info("Aguardando entrada...")
         
         # SEÇÃO DE ANÁLISE CLÍNICA (AGENTE 6) - LOGO ABAIXO DO RESULTADO, MESMA COLUNA
-        if "output_analise" in st.session_state:
-            st.divider()
-            st.markdown("**🩺 Análise Clínica (Suporte à Decisão)**")
-            
-            analise = st.session_state["output_analise"]
-            
-            if analise and len(analise.strip()) > 0:
-                # Tem conteúdo
-                if "❌" in analise or "⚠️" in analise:
-                    st.error(analise)
+        if usar_analise:
+            if "output_analise" in st.session_state:
+                st.divider()
+                st.markdown("**🩺 Análise Clínica (Suporte à Decisão)**")
+                
+                analise = st.session_state["output_analise"]
+                
+                if analise and len(analise.strip()) > 0:
+                    # Tem conteúdo
+                    if "❌" in analise or "⚠️" in analise:
+                        st.error(analise)
+                    else:
+                        # Mostra análise em markdown para formatação bonita
+                        st.markdown(analise)
                 else:
-                    # Mostra análise em markdown para formatação bonita
-                    st.markdown(analise)
-            else:
-                # Vazio ou não processou
-                st.info("🤖 Aguardando processamento ou sem dados alterados para análise.")
-        elif "output_exames" in st.session_state and st.session_state["output_exames"]:
-            # Exames foram processados mas análise não apareceu em session_state
-            st.divider()
-            st.markdown("**🩺 Análise Clínica (Suporte à Decisão)**")
-            st.warning("⚠️ Análise clínica não foi gerada. Verifique o terminal para logs de debug.")
+                    # Vazio ou não processou
+                    st.info("🤖 Aguardando processamento ou sem dados alterados para análise.")
+            elif "output_exames" in st.session_state and st.session_state["output_exames"]:
+                # Exames foram processados mas análise não apareceu em session_state
+                st.divider()
+                st.markdown("**🩺 Análise Clínica (Suporte à Decisão)**")
+                st.warning("⚠️ Análise clínica não foi gerada. Verifique o terminal para logs de debug.")
 
 with tab2:
     st.subheader("💊 Processador de Prescrição - Multi-Agente")
