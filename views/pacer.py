@@ -1278,17 +1278,6 @@ with st.sidebar:
         st.success(f"✅ API Key: ...{OPENAI_API_KEY[-8:]}")
     else:
         st.error("❌ API Key não carregada!")
-    
-    st.divider()
-    
-    # Opção para Análise Clínica (Agente 6)
-    usar_analise = st.checkbox(
-        "Análise Clínica (CDSS)", 
-        value=True,
-        help="Gera hipóteses diagnósticas baseadas nos exames alterados"
-    )
-    
-    st.divider()
 
 # Função de renderização principal
 def render_interface_colunas(titulo, key_input, key_output, prompt_atual, usar_markdown=True):
@@ -1340,6 +1329,10 @@ with tab1:
     # TODOS OS AGENTES SEMPRE ATIVOS (SEM OPÇÃO DE SELEÇÃO)
     agentes_ativos = list(AGENTES_EXAMES.keys())
     
+    # Inicializa checkbox de análise no session_state
+    if "usar_analise" not in st.session_state:
+        st.session_state.usar_analise = True
+    
     # COLUNAS DE INPUT/OUTPUT
     col1, col2 = st.columns([1, 1], gap="large")
     
@@ -1357,7 +1350,7 @@ with tab1:
         st.markdown("**Resultado dos Exames**")
         if processar:
             # Define mensagem do spinner baseado em usar_analise
-            if usar_analise:
+            if st.session_state.usar_analise:
                 msg_spinner = "Processando exames com 6 agentes especializados..."
             else:
                 msg_spinner = "Processando exames com 5 agentes de extração..."
@@ -1370,16 +1363,16 @@ with tab1:
                     modelo_escolhido,
                     agentes_ativos,  # TODOS OS AGENTES SEMPRE
                     input_val,
-                    executar_analise=usar_analise  # Novo parâmetro
+                    executar_analise=st.session_state.usar_analise  # Novo parâmetro
                 )
                 st.session_state["output_exames"] = resultado_exames
-                st.session_state["output_analise"] = analise_clinica if usar_analise else ""
+                st.session_state["output_analise"] = analise_clinica if st.session_state.usar_analise else ""
                 
                 # Debug: mostra informação no terminal
                 print(f"\n[INFO] Processamento concluído:")
                 print(f"  - Resultado exames: {len(resultado_exames)} chars")
                 print(f"  - Análise clínica: {len(analise_clinica) if analise_clinica else 0} chars")
-                print(f"  - Análise ativada: {usar_analise}")
+                print(f"  - Análise ativada: {st.session_state.usar_analise}")
                 print(f"  - Análise tem conteúdo: {bool(analise_clinica and len(analise_clinica.strip()) > 0)}\n")
         
         # EXIBIÇÃO DO RESULTADO DOS EXAMES
@@ -1392,12 +1385,17 @@ with tab1:
         else:
             st.info("Aguardando entrada...")
         
-        # SEÇÃO DE ANÁLISE CLÍNICA (AGENTE 6) - LOGO ABAIXO DO RESULTADO, MESMA COLUNA
-        if usar_analise:
+        # CHECKBOX DE ANÁLISE CLÍNICA - LOGO ABAIXO DO RESULTADO
+        st.divider()
+        st.session_state.usar_analise = st.checkbox(
+            "🩺 Mostrar Análise Clínica (CDSS)", 
+            value=st.session_state.usar_analise,
+            help="Gera hipóteses diagnósticas baseadas nos exames alterados"
+        )
+        
+        # SEÇÃO DE ANÁLISE CLÍNICA (AGENTE 6) - APARECE SE CHECKBOX MARCADO
+        if st.session_state.usar_analise:
             if "output_analise" in st.session_state:
-                st.divider()
-                st.markdown("**🩺 Análise Clínica (Suporte à Decisão)**")
-                
                 analise = st.session_state["output_analise"]
                 
                 if analise and len(analise.strip()) > 0:
@@ -1412,8 +1410,6 @@ with tab1:
                     st.info("🤖 Aguardando processamento ou sem dados alterados para análise.")
             elif "output_exames" in st.session_state and st.session_state["output_exames"]:
                 # Exames foram processados mas análise não apareceu em session_state
-                st.divider()
-                st.markdown("**🩺 Análise Clínica (Suporte à Decisão)**")
                 st.warning("⚠️ Análise clínica não foi gerada. Verifique o terminal para logs de debug.")
 
 with tab2:
