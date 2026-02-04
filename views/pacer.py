@@ -2,6 +2,8 @@ import streamlit as st
 from utils import mostrar_rodape
 import google.generativeai as genai
 from openai import OpenAI
+from concurrent.futures import ThreadPoolExecutor, as_completed
+import time
 
 # ==============================================================================
 # 1. CONFIGURAÇÕES VISUAIS
