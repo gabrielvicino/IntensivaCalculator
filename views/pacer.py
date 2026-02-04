@@ -1275,7 +1275,7 @@ with st.sidebar:
     
     # Debug: mostra se API key foi carregada
     if OPENAI_API_KEY and len(OPENAI_API_KEY) > 10:
-        st.success(f"✅ API Key: ...{OPENAI_API[-8:]}")
+        st.success(f"✅ API Key: ...{OPENAI_API_KEY[-8:]}")
     else:
         st.error("❌ API Key não carregada!")
     
