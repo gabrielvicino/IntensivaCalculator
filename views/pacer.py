@@ -1320,6 +1320,10 @@ def render_interface_colunas(titulo, key_input, key_output, prompt_atual, usar_m
         else:
              st.info("Aguardando entrada...")
 
+# Inicializa checkbox de análise no session_state (ANTES DAS TABS)
+if "usar_analise" not in st.session_state:
+    st.session_state.usar_analise = True
+
 # Abas
 tab1, tab2 = st.tabs(["🧪 Exames", "💊 Prescrição"])
 
@@ -1328,10 +1332,6 @@ with tab1:
     
     # TODOS OS AGENTES SEMPRE ATIVOS (SEM OPÇÃO DE SELEÇÃO)
     agentes_ativos = list(AGENTES_EXAMES.keys())
-    
-    # Inicializa checkbox de análise no session_state
-    if "usar_analise" not in st.session_state:
-        st.session_state.usar_analise = True
     
     # COLUNAS DE INPUT/OUTPUT
     col1, col2 = st.columns([1, 1], gap="large")
