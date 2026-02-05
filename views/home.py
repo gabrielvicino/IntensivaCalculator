@@ -28,11 +28,23 @@ O sistema opera com **redundância de dados** (Nuvem e Local), garantindo **alta
 
 Selecione uma das ferramentas no menu lateral para iniciar:
 
+##### 📊 **Sistemas Inteligentes de Extração e Análise**
+
+* **🩺 Pacer (Exames):** Sistema multi-agente baseado em **Inteligência Artificial (GPT-4o)** para extração estruturada e padronização de **resultados laboratoriais** a partir de laudos brutos. Processa simultaneamente até **6 domínios clínicos** (Hematologia, Função Renal, Função Hepática, Coagulação, Urinálise e Gasometria), com **precisão numérica rigorosa** e formatação clínica otimizada. Inclui módulo opcional de **Análise Clínica (CDSS)** para geração automatizada de hipóteses diagnósticas baseadas em padrões laboratoriais.
+
+* **📋 Pacer (Prescrição):** Sistema de **reconhecimento e estruturação** de prescrições médicas hospitalares, capaz de identificar automaticamente o paciente, período, leito e extrair medicamentos com suas respectivas **posologias, vias de administração e horários**. Reduz erros de transcrição e otimiza o fluxo assistencial.
+
+* **📈 Evolução Clínica Estruturada:** Ferramenta completa para **registro longitudinal de pacientes críticos**, integrando dados vitais, balanço hídrico, scores prognósticos (SOFA, SAPS III, APACHE II, Glasgow, RASS, CAM-ICU) e geração automatizada de **evolução clínica completa** com análise de tendências, identificação de deterioração clínica e sugestões de condutas baseadas em protocolos.
+
+##### 🧮 **Calculadoras Clínicas e Ferramentas de Suporte**
+
 * **💉 Infusão Contínua:** Calculadora de alta precisão para **drogas vasoativas, sedativos e analgésicos**. Permite ajustes personalizados de concentração, cálculo reverso de doses e definição de limites de segurança.
     
 * **⚡ Intubação Orotraqueal (IOT):** Guia rápido para indução de **sequência rápida**, com sugestões de doses mínimas, usuais e máximas de agentes indutores e bloqueadores neuromusculares, **ajustadas ao peso corporal**.
 
 * **🔄 Conversão Universal:** Ferramenta para **conversão instantânea** entre unidades farmacológicas (mcg, mg, g, UI) e taxas de infusão (ml/h ↔ dose/kg/min), facilitando a prática clínica diária.
+
+* **🧪 Calculadoras Especializadas:** Conjunto de calculadoras para **função renal** (Clearance de Creatinina, TFG, RIFLE, AKIN, KDIGO), **hemodinâmica** (Choque Index, Déficit de Base), **ventilação mecânica**, **nutrição** e **scores prognósticos**.
 
 ---
 Ferramenta em desenvolvimento por *Dr. Gabriel Valladão Vicino – CRM-SP 223.216*
