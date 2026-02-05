@@ -103,7 +103,7 @@ st.markdown(
     f"</p>",
     unsafe_allow_html=True
 )
-st.caption("A avaliação individual é imprescindível e deve sempre considerar preditores de dificuldade de via aérea e o quadro clínico específico de cada paciente. A individualização é imprescindível para a melhor escolha do diâmetro do tubo orotraqueal.")
+st.caption("A avaliação individual é imprescindível e deve contemplar a estratificação dos preditores de via aérea difícil e a análise das variáveis clínicas e anatômicas específicas de cada paciente.")
 st.markdown("---")
 
 # --- PROCESSAMENTO DA TABELA ---
