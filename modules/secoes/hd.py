@@ -44,15 +44,11 @@ def _render_card_atual(i):
         # LINHA 2: Complemento/Evolução
         st.text_area(f"Complemento/Evolução#{i} = Observação Hipótese Diagnóstica {i}", key=f"hd_atual_{i}_obs", height=68, placeholder="Observações sobre a evolução da HD...")
         
-        # LINHA 3: Conduta (destacada em verde)
+        # LINHA 3: Conduta (destacada em verde - discreto)
         st.markdown("**Digite a conduta:**")
-        with st.container():
-            st.markdown(
-                '<div style="border: 2px solid #28a745; border-radius: 5px; padding: 10px; background-color: #d4edda;">',
-                unsafe_allow_html=True
-            )
+        # Usa st.success para criar um container verde discreto
+        with st.success("", icon=""):
             st.text_input("Conduta", key=f"hd_atual_{i}_conduta", label_visibility="collapsed", placeholder="Digite a conduta aqui...")
-            st.markdown('</div>', unsafe_allow_html=True)
 
 # Função Card PRÉVIO
 def _render_card_previo(i):
