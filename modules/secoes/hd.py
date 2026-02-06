@@ -29,25 +29,30 @@ def get_campos():
 
 # Função Card ATUAL
 def _render_card_atual(i):
-    st.markdown(f"**HD Atual #{i}**")
+    st.markdown(f"**Hipótese Diagnóstica {i}**")
     
     with st.container(border=True):
         # LINHA 1: HD | Classificação | Data
         c1, c2, c3 = st.columns([3, 1.5, 1])
         with c1:
-            st.text_input(f"Diagnóstico #{i}", key=f"hd_atual_{i}_nome", placeholder="Ex: LRA")
+            st.text_input(f"HD Atual#{i}", key=f"hd_atual_{i}_nome", placeholder="Ex: Lesão Renal Aguda")
         with c2:
             st.text_input(f"Classificação #{i}", key=f"hd_atual_{i}_class", placeholder="Ex: KDIGO 3")
         with c3:
-            st.text_input(f"Data Início", key=f"hd_atual_{i}_data", placeholder="DD/MM")
+            st.text_input(f"Data Início (dd/mm/aaaa)", key=f"hd_atual_{i}_data", placeholder="01/01/2025")
             
-        # LINHA 2: Complemento
-        st.text_area(f"Complemento / Evolução #{i}", key=f"hd_atual_{i}_obs", height=68, placeholder="> Aguarda teste de furosemida...")
+        # LINHA 2: Complemento/Evolução
+        st.text_area(f"Complemento/Evolução#{i} = Observação Hipótese Diagnóstica {i}", key=f"hd_atual_{i}_obs", height=68, placeholder="Observações sobre a evolução da HD...")
         
-        # LINHA 3: Conduta (CORREÇÃO DO ERRO AQUI)
-        # Passamos o texto "Conduta #i" dentro do st.success para satisfazer o argumento 'body'
-        with st.success(f"Conduta #{i}"):
+        # LINHA 3: Conduta (destacada em verde)
+        st.markdown("**Digite a conduta:**")
+        with st.container():
+            st.markdown(
+                '<div style="border: 2px solid #28a745; border-radius: 5px; padding: 10px; background-color: #d4edda;">',
+                unsafe_allow_html=True
+            )
             st.text_input("Conduta", key=f"hd_atual_{i}_conduta", label_visibility="collapsed", placeholder="Digite a conduta aqui...")
+            st.markdown('</div>', unsafe_allow_html=True)
 
 # Função Card PRÉVIO
 def _render_card_previo(i):
@@ -66,7 +71,7 @@ def _render_card_previo(i):
 
 # 2. Renderização Principal
 def render():
-    st.markdown("##### 2. Diagnósticos (HD) & Condutas")
+    st.markdown("##### 2. Diagnósticos Atuais & Prévios")
     
     # --- A: HDS ATUAIS VISÍVEIS (1 e 2) ---
     _render_card_atual(1)
