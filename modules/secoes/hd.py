@@ -27,9 +27,41 @@ def get_campos():
         
     return campos
 
+# Função para trocar posições
+def _trocar_posicoes(pos1, pos2):
+    """Troca os valores de duas hipóteses diagnósticas no session_state"""
+    # Lista de campos a trocar
+    campos = ['nome', 'class', 'conduta', 'data', 'obs']
+    
+    for campo in campos:
+        key1 = f"hd_atual_{pos1}_{campo}"
+        key2 = f"hd_atual_{pos2}_{campo}"
+        
+        # Troca os valores
+        if key1 in st.session_state and key2 in st.session_state:
+            temp = st.session_state[key1]
+            st.session_state[key1] = st.session_state[key2]
+            st.session_state[key2] = temp
+
 # Função Card ATUAL
 def _render_card_atual(i):
-    st.markdown(f"**Hipótese Diagnóstica {i}**")
+    # Título com botões de reordenação
+    col_titulo, col_up, col_down = st.columns([10, 1, 1])
+    
+    with col_titulo:
+        st.markdown(f"**Hipótese Diagnóstica {i}**")
+    
+    with col_up:
+        if i > 1:  # Só mostra se não for o primeiro
+            if st.button("↑", key=f"up_{i}", help="Mover para cima"):
+                _trocar_posicoes(i, i-1)
+                st.rerun()
+    
+    with col_down:
+        if i < 4:  # Só mostra se não for o último
+            if st.button("↓", key=f"down_{i}", help="Mover para baixo"):
+                _trocar_posicoes(i, i+1)
+                st.rerun()
     
     with st.container(border=True):
         # LINHA 1: Hipótese Diagnóstica | Classificação | Data
