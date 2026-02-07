@@ -59,7 +59,6 @@ def _render_linha(idx_display, id_real):
                     _trocar_ordem(idx_display-1, idx_display)
                     st.rerun()
         
-        # LINHA 1: Medicamento | Dose | Frequência
         c1, c2, c3 = st.columns([3, 1, 1.2], vertical_alignment="bottom")
         
         with c1:
