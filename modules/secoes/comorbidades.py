@@ -25,18 +25,9 @@ def _render_linha(i):
             st.text_input(f"Classificação {i}", key=f"cmd_{i}_class", placeholder="Ex: Estágio 2")
             
         with c3:
-            # CSS para adicionar borda verde no campo de conduta
             st.markdown(
                 f"""
                 <style>
-                div[data-testid="stTextInput"] input[placeholder*="Manter"] {{
-                    border-left: 4px solid #28a745 !important;
-                    padding-left: 12px !important;
-                }}
-                div[data-testid="stTextInput"] input[placeholder*="Losartana"] {{
-                    border-left: 4px solid #28a745 !important;
-                    padding-left: 12px !important;
-                }}
                 input[type="text"][id*="cmd_{i}_conduta"] {{
                     border-left: 4px solid #28a745 !important;
                     padding-left: 12px !important;
