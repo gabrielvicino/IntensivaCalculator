@@ -46,6 +46,7 @@ def get_campos():
             f'atb_prev_{i}_tipo': 'Empírico',
             f'atb_prev_{i}_data_ini': '',
             f'atb_prev_{i}_data_fim': '',     # Término Real
+            f'atb_prev_{i}_obs': '',          # Observação
             f'atb_prev_{i}_conduta': ''
         })
         
@@ -145,7 +146,15 @@ def _render_previo(idx_display, id_real):
         with d2:
             st.text_input("Data Término (dd/mm/aaaa)", key=f"atb_prev_{id_real}_data_fim", placeholder="dd/mm/aaaa")
 
-        # LINHA 3: Conduta (com borda verde)
+        # LINHA 3: Observação
+        st.text_area(
+            f"Observação", 
+            key=f"atb_prev_{id_real}_obs",
+            placeholder="Exemplo: Motivo da suspensão, resposta ao tratamento...",
+            height=80
+        )
+
+        # LINHA 4: Conduta (com borda verde)
         st.markdown(f"**Conduta {idx_display}:**")
         st.markdown(
             f"""
@@ -206,7 +215,7 @@ def render():
             tem_conteudo_extras = True
             break
     
-    with st.expander("Demais ATB Atuais", expanded=tem_conteudo_extras):
+    with st.expander("Demais Antibióticos Atuais", expanded=tem_conteudo_extras):
         _render_atual(4, ordem_atual[3])
         st.write("")
         _render_atual(5, ordem_atual[4])
