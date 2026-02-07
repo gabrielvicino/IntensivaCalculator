@@ -8,12 +8,12 @@ def get_campos():
 
 # 2. Renderização Visual
 def render():
-    st.markdown("##### 5. HMPA / Internação Atual")
+    st.markdown("##### 5. História da Moléstia Pregressa Atual")
     
     with st.container(border=True):
         st.text_area(
             "História da Moléstia Pregressa e Atual",
             key="hmpa_texto",
             height=120,
-            placeholder="Ex: Paciente deu entrada no PS com quadro de dispneia há 3 dias..."
+            placeholder="Exemplo: Paciente deu entrada no PS com quadro de dispneia há 3 dias..."
         )
