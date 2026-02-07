@@ -106,11 +106,11 @@ def render_formulario_completo():
         /* ================= EFEITO ZEBRADO NOS TÍTULOS DAS SEÇÕES ================= */
         /* Títulos h5 das seções - efeito alternado com barra lateral */
         
-        /* Seções ímpares (1, 3, 5, 7, 9, 11, 13): Azul discreto */
+        /* Seções ímpares (1, 3, 5, 7, 9, 11, 13): Amarelo/Âmbar discreto */
         h5:nth-of-type(odd) {
-            background: linear-gradient(90deg, #E3F2FD 0%, #FFFFFF 100%) !important;
+            background: linear-gradient(90deg, #FFF8E1 0%, #FFFFFF 100%) !important;
             padding: 0.6rem 1rem !important;
-            border-left: 4px solid #2196F3 !important;
+            border-left: 4px solid #FFA726 !important;
             border-radius: 4px !important;
             margin-bottom: 1rem !important;
         }
