@@ -27,54 +27,56 @@ def get_campos():
         
     return campos
 
-# Função para trocar posições
-def _trocar_posicoes(pos1, pos2):
-    """Troca os valores de duas hipóteses diagnósticas no session_state"""
-    # Lista de campos a trocar
-    campos = ['nome', 'class', 'conduta', 'data', 'obs']
-    
-    for campo in campos:
-        key1 = f"hd_atual_{pos1}_{campo}"
-        key2 = f"hd_atual_{pos2}_{campo}"
-        
-        # Troca os valores
-        if key1 in st.session_state and key2 in st.session_state:
-            temp = st.session_state[key1]
-            st.session_state[key1] = st.session_state[key2]
-            st.session_state[key2] = temp
+# Função para gerenciar ordem das hipóteses
+def _inicializar_ordem():
+    """Inicializa a ordem das hipóteses se não existir"""
+    if 'hd_ordem' not in st.session_state:
+        st.session_state.hd_ordem = [1, 2, 3, 4]
+
+def _trocar_ordem(idx1, idx2):
+    """Troca a ordem de exibição de duas hipóteses"""
+    _inicializar_ordem()
+    ordem = st.session_state.hd_ordem
+    ordem[idx1], ordem[idx2] = ordem[idx2], ordem[idx1]
+    st.session_state.hd_ordem = ordem
 
 # Função Card ATUAL
-def _render_card_atual(i):
+def _render_card_atual(idx_display, id_real):
+    """
+    Renderiza um card de hipótese.
+    idx_display: posição de exibição (1, 2, 3, 4)
+    id_real: ID real da hipótese nos dados (1, 2, 3, 4)
+    """
     # Título com botões de reordenação
     col_titulo, col_up, col_down = st.columns([10, 1, 1])
     
     with col_titulo:
-        st.markdown(f"**Hipótese Diagnóstica {i}**")
+        st.markdown(f"**Hipótese Diagnóstica {idx_display}**")
     
     with col_up:
-        if i > 1:  # Só mostra se não for o primeiro
-            if st.button("↑", key=f"up_{i}", help="Mover para cima"):
-                _trocar_posicoes(i, i-1)
+        if idx_display > 1:  # Só mostra se não for o primeiro
+            if st.button("↑", key=f"up_pos_{idx_display}", help="Mover para cima"):
+                _trocar_ordem(idx_display-1, idx_display-2)
                 st.rerun()
     
     with col_down:
-        if i < 4:  # Só mostra se não for o último
-            if st.button("↓", key=f"down_{i}", help="Mover para baixo"):
-                _trocar_posicoes(i, i+1)
+        if idx_display < 4:  # Só mostra se não for o último
+            if st.button("↓", key=f"down_pos_{idx_display}", help="Mover para baixo"):
+                _trocar_ordem(idx_display-1, idx_display)
                 st.rerun()
     
     with st.container(border=True):
         # LINHA 1: Hipótese Diagnóstica | Classificação | Data
         c1, c2, c3 = st.columns([3, 1.5, 1])
         with c1:
-            st.text_input(f"Hipótese Diagnóstica Atual {i}", key=f"hd_atual_{i}_nome", placeholder="Ex: Lesão Renal Aguda")
+            st.text_input(f"Hipótese Diagnóstica Atual {idx_display}", key=f"hd_atual_{id_real}_nome", placeholder="Ex: Lesão Renal Aguda")
         with c2:
-            st.text_input(f"Classificação {i}", key=f"hd_atual_{i}_class", placeholder="Ex: KDIGO 3")
+            st.text_input(f"Classificação {idx_display}", key=f"hd_atual_{id_real}_class", placeholder="Ex: KDIGO 3")
         with c3:
-            st.text_input(f"Data Início (dd/mm/aaaa)", key=f"hd_atual_{i}_data", placeholder="01/01/2025")
+            st.text_input(f"Data Início (dd/mm/aaaa)", key=f"hd_atual_{id_real}_data", placeholder="01/01/2025")
             
         # LINHA 2: Observação
-        st.text_area(f"Observação Hipótese Diagnóstica {i}", key=f"hd_atual_{i}_obs", height=68, placeholder="Observações sobre a evolução da Hipótese Diagnóstica...")
+        st.text_area(f"Observação Hipótese Diagnóstica {idx_display}", key=f"hd_atual_{id_real}_obs", height=68, placeholder="Observações sobre a evolução da Hipótese Diagnóstica...")
         
         # LINHA 3: Conduta (destacada em verde - discreto)
         st.markdown("**Digite a conduta:**")
@@ -93,7 +95,7 @@ def _render_card_atual(i):
             """,
             unsafe_allow_html=True
         )
-        st.text_input("Conduta", key=f"hd_atual_{i}_conduta", label_visibility="collapsed", placeholder="Digite a conduta aqui...")
+        st.text_input("Conduta", key=f"hd_atual_{id_real}_conduta", label_visibility="collapsed", placeholder="Digite a conduta aqui...")
 
 # Função Card PRÉVIO
 def _render_card_previo(i):
@@ -114,17 +116,21 @@ def _render_card_previo(i):
 def render():
     st.markdown("##### 2. Diagnósticos Atuais & Prévios")
     
+    # Inicializa ordem
+    _inicializar_ordem()
+    ordem = st.session_state.hd_ordem
+    
     # --- A: HDS ATUAIS VISÍVEIS (1 e 2) ---
-    _render_card_atual(1)
+    _render_card_atual(1, ordem[0])
     st.write("") 
-    _render_card_atual(2)
+    _render_card_atual(2, ordem[1])
     
     # --- B: HIPÓTESES DIAGNÓSTICAS ATUAIS EXTRAS (3 e 4) - ESCONDIDOS ---
     st.write("")
     with st.expander("Outras Hipóteses Diagnósticas Atuais"):
-        _render_card_atual(3)
+        _render_card_atual(3, ordem[2])
         st.write("")
-        _render_card_atual(4)
+        _render_card_atual(4, ordem[3])
 
     st.write("") 
     st.write("")
