@@ -57,7 +57,7 @@ def _render_linha(idx_display, id_real):
         )
         
         # Campo Conduta (com borda verde)
-        st.markdown(f"<style>input[type='text'][id*='comp_{id_real}_conduta']{{border-left:4px solid #28a745!important;padding-left:12px!important}}div[data-testid='stTextInput'] input[placeholder*='Solicitar']{{border-left:4px solid #28a745!important;padding-left:12px!important}}</style>", unsafe_allow_html=True)
+        st.markdown(f"<style>input[id*='comp_{id_real}_conduta']{{border-left:4px solid #28a745!important;padding-left:12px!important}}input[id*='comp_{id_real}_conduta'][type='text']{{border-left:4px solid #28a745!important;padding-left:12px!important}}div[data-testid='stTextInput']:has(input[id*='comp_{id_real}_conduta']) input{{border-left:4px solid #28a745!important;padding-left:12px!important}}</style>", unsafe_allow_html=True)
         st.text_input(
             f"Conduta {idx_display}",
             key=f"comp_{id_real}_conduta",

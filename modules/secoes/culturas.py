@@ -84,7 +84,7 @@ def _render_linha(idx_display, id_real):
             st.text_input(f"Perfil Sensibilidade {idx_display}", key=f"cult_{id_real}_sensib", placeholder="Exemplo: Sensível a Polimixina B")
 
         # LINHA 4: Conduta (com borda verde)
-        st.markdown(f"<style>input[type='text'][id*='cult_{id_real}_conduta']{{border-left:4px solid #28a745!important;padding-left:12px!important}}div[data-testid='stTextInput'] input[placeholder*='Escalonar']{{border-left:4px solid #28a745!important;padding-left:12px!important}}</style>", unsafe_allow_html=True)
+        st.markdown(f"<style>input[id*='cult_{id_real}_conduta']{{border-left:4px solid #28a745!important;padding-left:12px!important}}input[id*='cult_{id_real}_conduta'][type='text']{{border-left:4px solid #28a745!important;padding-left:12px!important}}div[data-testid='stTextInput']:has(input[id*='cult_{id_real}_conduta']) input{{border-left:4px solid #28a745!important;padding-left:12px!important}}</style>", unsafe_allow_html=True)
         st.text_input(
             f"Conduta {idx_display}", 
             key=f"cult_{id_real}_conduta", 
