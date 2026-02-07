@@ -38,6 +38,19 @@ def _render_linha(idx_display, id_real):
     id_real: ID real da medicação nos dados (1-10)
     """
     with st.container(border=True):
+        # CSS para borda verde (no início do container)
+        st.markdown(
+            f"""
+            <style>
+            input[type="text"][id*="muc_{id_real}_conduta"] {{
+                border-left: 4px solid #28a745 !important;
+                padding-left: 12px !important;
+            }}
+            </style>
+            """,
+            unsafe_allow_html=True
+        )
+        
         # Título com botões de reordenação
         col_titulo, col_up, col_down = st.columns([10, 1, 1])
         
@@ -65,19 +78,8 @@ def _render_linha(idx_display, id_real):
             st.text_input(f"Dose {idx_display}", key=f"muc_{id_real}_dose", placeholder="Exemplo: 20mg")
         with c3:
             st.text_input(f"Frequência {idx_display}", key=f"muc_{id_real}_freq", placeholder="Exemplo: 12/12h")
-            
-        # LINHA 2: Conduta (com borda verde)
-        st.markdown(
-            f"""
-            <style>
-            input[type="text"][id*="muc_{id_real}_conduta"] {{
-                border-left: 4px solid #28a745 !important;
-                padding-left: 12px !important;
-            }}
-            </style>
-            """,
-            unsafe_allow_html=True
-        )
+        
+        # LINHA 2: Conduta
         st.text_input(f"Conduta {idx_display}", key=f"muc_{id_real}_conduta", placeholder="Exemplo: Manter, Suspender ou Ajustar")
 
 # 2. Renderização Principal
