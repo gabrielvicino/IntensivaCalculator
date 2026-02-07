@@ -79,14 +79,10 @@ def _render_card_atual(idx_display, id_real):
         st.text_area(f"Observação Hipótese Diagnóstica {idx_display}", key=f"hd_atual_{id_real}_obs", height=68, placeholder="Observações sobre a evolução da Hipótese Diagnóstica...")
         
         # LINHA 3: Conduta (destacada em verde - discreto)
-        # CSS para adicionar borda verde no campo de input
         st.markdown(
             f"""
             <style>
-            input[aria-label="Conduta"]:not([value=""]) {{
-                border-left: 4px solid #28a745 !important;
-            }}
-            div[data-testid="stTextInput"] input[placeholder*="conduta"] {{
+            input[type="text"][id*="hd_atual_{id_real}_conduta"] {{
                 border-left: 4px solid #28a745 !important;
                 padding-left: 12px !important;
             }}
@@ -108,11 +104,10 @@ def _render_card_previo(i):
         st.text_area(f"Observação {i}", key=f"hd_prev_{i}_obs", height=68)
 
         # LINHA 3: Conduta Realizada (com mesmo design de borda verde)
-        # CSS para adicionar borda verde no campo de input (mesmo estilo das condutas atuais)
         st.markdown(
             f"""
             <style>
-            div[data-testid="stTextInput"] input[placeholder*="tomada"] {{
+            input[type="text"][id*="hd_prev_{i}_conduta"] {{
                 border-left: 4px solid #28a745 !important;
                 padding-left: 12px !important;
             }}

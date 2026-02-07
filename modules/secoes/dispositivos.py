@@ -81,10 +81,6 @@ def _render_linha(idx_display, id_real):
             st.markdown(
                 f"""
                 <style>
-                div[data-testid="stTextInput"] input[placeholder*="Trocar"] {{
-                    border-left: 4px solid #28a745 !important;
-                    padding-left: 12px !important;
-                }}
                 input[type="text"][id*="disp_{id_real}_conduta"] {{
                     border-left: 4px solid #28a745 !important;
                     padding-left: 12px !important;
