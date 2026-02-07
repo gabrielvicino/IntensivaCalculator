@@ -102,6 +102,25 @@ def render_formulario_completo():
             border-color: #4caf50 !important;
             box-shadow: 0 0 0 1px #4caf50 !important;
         }
+        
+        /* ================= EFEITO ZEBRADO NAS SEÇÕES (ALTERNADO) ================= */
+        /* Seções ímpares: Branco puro */
+        .secao-impar {
+            background-color: #FFFFFF;
+            padding: 1.2rem 1.5rem;
+            border-radius: 6px;
+            margin-bottom: 0.8rem;
+            border: 1px solid #F0F0F0;
+        }
+        
+        /* Seções pares: Cinza muito claro e discreto */
+        .secao-par {
+            background-color: #F8F9FA;
+            padding: 1.2rem 1.5rem;
+            border-radius: 6px;
+            margin-bottom: 0.8rem;
+            border: 1px solid #E9ECEF;
+        }
 
     </style>
     """, unsafe_allow_html=True)
@@ -110,16 +129,25 @@ def render_formulario_completo():
     # 1. DADOS DO PACIENTE
     # ==========================================
     with st.expander("Dados do Paciente", expanded=False):
-        identificacao.render()      
-        st.write("") 
-        hd.render()                 
-        st.write("")
-        comorbidades.render()       
-        st.write("")
-        muc.render()                
-        st.write("")
-        hmpa.render()               
-        st.write("")
+        st.markdown('<div class="secao-impar">', unsafe_allow_html=True)
+        identificacao.render()
+        st.markdown('</div>', unsafe_allow_html=True)
+        
+        st.markdown('<div class="secao-par">', unsafe_allow_html=True)
+        hd.render()
+        st.markdown('</div>', unsafe_allow_html=True)
+        
+        st.markdown('<div class="secao-impar">', unsafe_allow_html=True)
+        comorbidades.render()
+        st.markdown('</div>', unsafe_allow_html=True)
+        
+        st.markdown('<div class="secao-par">', unsafe_allow_html=True)
+        muc.render()
+        st.markdown('</div>', unsafe_allow_html=True)
+        
+        st.markdown('<div class="secao-impar">', unsafe_allow_html=True)
+        hmpa.render()
+        st.markdown('</div>', unsafe_allow_html=True)
     
     st.write("") # Espaço visual
 
@@ -127,14 +155,21 @@ def render_formulario_completo():
     # 2. DADOS CLÍNICOS
     # ==========================================
     with st.expander("Evolução Horizontal", expanded=False):
-        dispositivos.render()       
-        st.write("")
-        culturas.render()           
-        st.write("")
-        antibioticos.render()       
-        st.write("")
-        complementares.render()     
-        st.write("")
+        st.markdown('<div class="secao-par">', unsafe_allow_html=True)
+        dispositivos.render()
+        st.markdown('</div>', unsafe_allow_html=True)
+        
+        st.markdown('<div class="secao-impar">', unsafe_allow_html=True)
+        culturas.render()
+        st.markdown('</div>', unsafe_allow_html=True)
+        
+        st.markdown('<div class="secao-par">', unsafe_allow_html=True)
+        antibioticos.render()
+        st.markdown('</div>', unsafe_allow_html=True)
+        
+        st.markdown('<div class="secao-impar">', unsafe_allow_html=True)
+        complementares.render()
+        st.markdown('</div>', unsafe_allow_html=True)
 
     st.write("") # Espaço visual
 
@@ -142,10 +177,18 @@ def render_formulario_completo():
     # 3. EVOLUÇÃO DIÁRIA
     # ==========================================
     with st.expander("Evolução Diária", expanded=True):
-        laboratoriais.render()      
-        st.write("")
-        evolucao_clinica.render()   
-        st.write("")
-        sistemas.render()           
-        st.write("")
+        st.markdown('<div class="secao-par">', unsafe_allow_html=True)
+        laboratoriais.render()
+        st.markdown('</div>', unsafe_allow_html=True)
+        
+        st.markdown('<div class="secao-impar">', unsafe_allow_html=True)
+        evolucao_clinica.render()
+        st.markdown('</div>', unsafe_allow_html=True)
+        
+        st.markdown('<div class="secao-par">', unsafe_allow_html=True)
+        sistemas.render()
+        st.markdown('</div>', unsafe_allow_html=True)
+        
+        st.markdown('<div class="secao-impar">', unsafe_allow_html=True)
         condutas.render()
+        st.markdown('</div>', unsafe_allow_html=True)
