@@ -79,7 +79,6 @@ def _render_card_atual(idx_display, id_real):
         st.text_area(f"Observação Hipótese Diagnóstica {idx_display}", key=f"hd_atual_{id_real}_obs", height=68, placeholder="Observações sobre a evolução da Hipótese Diagnóstica...")
         
         # LINHA 3: Conduta (destacada em verde - discreto)
-        st.markdown("**Digite a conduta:**")
         # CSS para adicionar borda verde no campo de input
         st.markdown(
             f"""
@@ -95,7 +94,7 @@ def _render_card_atual(idx_display, id_real):
             """,
             unsafe_allow_html=True
         )
-        st.text_input("Conduta", key=f"hd_atual_{id_real}_conduta", label_visibility="collapsed", placeholder="Digite a conduta aqui...")
+        st.text_input(f"Conduta {idx_display}", key=f"hd_atual_{id_real}_conduta", placeholder="Digite a conduta aqui...")
 
 # Função Card PRÉVIO
 def _render_card_previo(i):
@@ -109,7 +108,6 @@ def _render_card_previo(i):
         st.text_area(f"Observação {i}", key=f"hd_prev_{i}_obs", height=68)
 
         # LINHA 3: Conduta Realizada (com mesmo design de borda verde)
-        st.markdown("**✅ Conduta Realizada:**")
         # CSS para adicionar borda verde no campo de input (mesmo estilo das condutas atuais)
         st.markdown(
             f"""
@@ -122,7 +120,7 @@ def _render_card_previo(i):
             """,
             unsafe_allow_html=True
         )
-        st.text_input("Conduta", key=f"hd_prev_{i}_conduta", label_visibility="collapsed", placeholder="Conduta que foi tomada...")
+        st.text_input(f"✅ Conduta Realizada {i}", key=f"hd_prev_{i}_conduta", placeholder="Conduta que foi tomada...")
 
 # 2. Renderização Principal
 def render():
