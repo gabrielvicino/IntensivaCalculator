@@ -35,26 +35,21 @@ def _render_linha(idx_display, id_real):
     id_real: ID real do dispositivo nos dados (1-8)
     """
     with st.container(border=True):
-        # Título com botões de reordenação
+        st.markdown(f"<style>input[id*='disp_{id_real}_conduta']{{border-left:4px solid #28a745!important;padding-left:12px!important}}input[id*='disp_{id_real}_conduta'][type='text']{{border-left:4px solid #28a745!important;padding-left:12px!important}}div[data-testid='stTextInput']:has(input[id*='disp_{id_real}_conduta']) input{{border-left:4px solid #28a745!important;padding-left:12px!important}}</style>", unsafe_allow_html=True)
         col_titulo, col_up, col_down = st.columns([10, 1, 1])
-        
         with col_titulo:
             st.markdown(f"**Dispositivo {idx_display}**")
-        
         with col_up:
             if idx_display > 1:
                 if st.button("↑", key=f"disp_up_pos_{idx_display}", help="Mover para cima"):
                     _trocar_ordem(idx_display-1, idx_display-2)
                     st.rerun()
-        
         with col_down:
             if idx_display < 8:
                 if st.button("↓", key=f"disp_down_pos_{idx_display}", help="Mover para baixo"):
                     _trocar_ordem(idx_display-1, idx_display)
                     st.rerun()
-        
         c1, c2, c3, c4 = st.columns([2, 2, 1.2, 1.2], vertical_alignment="bottom")
-        
         with c1:
             st.text_input(f"Dispositivo {idx_display}", key=f"disp_{id_real}_nome", placeholder="Exemplo: CVC, PAM, SVD")
         with c2:
@@ -63,13 +58,7 @@ def _render_linha(idx_display, id_real):
             st.text_input(f"Data da Inserção", key=f"disp_{id_real}_data_insercao", placeholder="dd/mm/aaaa")
         with c4:
             st.text_input(f"Data da Retirada", key=f"disp_{id_real}_data_retirada", placeholder="dd/mm/aaaa")
-
-        # LINHA 2: Status | Conduta (tudo alinhado)
-        # CSS compacto para borda verde
-        st.markdown(f"<style>input[id*='disp_{id_real}_conduta']{{border-left:4px solid #28a745!important;padding-left:12px!important}}input[id*='disp_{id_real}_conduta'][type='text']{{border-left:4px solid #28a745!important;padding-left:12px!important}}div[data-testid='stTextInput']:has(input[id*='disp_{id_real}_conduta']) input{{border-left:4px solid #28a745!important;padding-left:12px!important}}</style>", unsafe_allow_html=True)
-        
         s1, s2 = st.columns([1.5, 4], vertical_alignment="bottom")
-        
         with s1:
             st.radio(
                 f"Status {idx_display}", 

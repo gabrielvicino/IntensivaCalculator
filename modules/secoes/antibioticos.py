@@ -60,24 +60,20 @@ def _render_atual(idx_display, id_real):
     id_real: ID real do ATB nos dados (1-5)
     """
     with st.container(border=True):
-        # Título com botões de reordenação no canto superior direito
+        st.markdown(f"<style>input[id*='atb_curr_{id_real}_conduta']{{border-left:4px solid #28a745!important;padding-left:12px!important}}input[id*='atb_curr_{id_real}_conduta'][type='text']{{border-left:4px solid #28a745!important;padding-left:12px!important}}div[data-testid='stTextInput']:has(input[id*='atb_curr_{id_real}_conduta']) input{{border-left:4px solid #28a745!important;padding-left:12px!important}}</style>", unsafe_allow_html=True)
         col_titulo, col_up, col_down = st.columns([10, 1, 1])
-        
         with col_titulo:
             st.markdown(f"**Antibiótico {idx_display}**")
-        
         with col_up:
             if idx_display > 1:
                 if st.button("↑", key=f"atb_curr_up_pos_{idx_display}", help="Mover para cima"):
                     _trocar_ordem_atual(idx_display-1, idx_display-2)
                     st.rerun()
-        
         with col_down:
             if idx_display < 5:
                 if st.button("↓", key=f"atb_curr_down_pos_{idx_display}", help="Mover para baixo"):
                     _trocar_ordem_atual(idx_display-1, idx_display)
                     st.rerun()
-        
         c1, c2 = st.columns([2, 1.5], vertical_alignment="center")
         with c1:
             st.text_input(f"Antibiótico {idx_display}", key=f"atb_curr_{id_real}_nome", placeholder="Exemplo: Meropenem")
@@ -97,8 +93,6 @@ def _render_atual(idx_display, id_real):
         with d2:
             st.text_input("Término Previsto (dd/mm/aaaa)", key=f"atb_curr_{id_real}_data_fim", placeholder="dd/mm/aaaa")
             
-        # LINHA 3: Conduta (com borda verde)
-        st.markdown(f"<style>input[id*='atb_curr_{id_real}_conduta']{{border-left:4px solid #28a745!important;padding-left:12px!important}}input[id*='atb_curr_{id_real}_conduta'][type='text']{{border-left:4px solid #28a745!important;padding-left:12px!important}}div[data-testid='stTextInput']:has(input[id*='atb_curr_{id_real}_conduta']) input{{border-left:4px solid #28a745!important;padding-left:12px!important}}</style>", unsafe_allow_html=True)
         st.text_input(
             f"Conduta {idx_display}", 
             key=f"atb_curr_{id_real}_conduta", 
@@ -113,24 +107,20 @@ def _render_previo(idx_display, id_real):
     id_real: ID real do ATB nos dados (1-5)
     """
     with st.container(border=True):
-        # Título com botões de reordenação no canto superior direito
+        st.markdown(f"<style>input[id*='atb_prev_{id_real}_conduta']{{border-left:4px solid #28a745!important;padding-left:12px!important}}input[id*='atb_prev_{id_real}_conduta'][type='text']{{border-left:4px solid #28a745!important;padding-left:12px!important}}div[data-testid='stTextInput']:has(input[id*='atb_prev_{id_real}_conduta']) input{{border-left:4px solid #28a745!important;padding-left:12px!important}}</style>", unsafe_allow_html=True)
         col_titulo, col_up, col_down = st.columns([10, 1, 1])
-        
         with col_titulo:
             st.markdown(f"**Antibiótico Prévio {idx_display}**")
-        
         with col_up:
             if idx_display > 1:
                 if st.button("↑", key=f"atb_prev_up_pos_{idx_display}", help="Mover para cima"):
                     _trocar_ordem_previo(idx_display-1, idx_display-2)
                     st.rerun()
-        
         with col_down:
             if idx_display < 5:
                 if st.button("↓", key=f"atb_prev_down_pos_{idx_display}", help="Mover para baixo"):
                     _trocar_ordem_previo(idx_display-1, idx_display)
                     st.rerun()
-        
         c1, c2 = st.columns([2, 1.5], vertical_alignment="center")
         with c1:
             st.text_input(f"Antibiótico Prévio {idx_display}", key=f"atb_prev_{id_real}_nome", placeholder="Exemplo: Ceftriaxone")
@@ -158,8 +148,6 @@ def _render_previo(idx_display, id_real):
             height=80
         )
 
-        # LINHA 4: Conduta (com borda verde)
-        st.markdown(f"<style>input[id*='atb_prev_{id_real}_conduta']{{border-left:4px solid #28a745!important;padding-left:12px!important}}input[id*='atb_prev_{id_real}_conduta'][type='text']{{border-left:4px solid #28a745!important;padding-left:12px!important}}div[data-testid='stTextInput']:has(input[id*='atb_prev_{id_real}_conduta']) input{{border-left:4px solid #28a745!important;padding-left:12px!important}}</style>", unsafe_allow_html=True)
         st.text_input(
             f"Conduta {idx_display}", 
             key=f"atb_prev_{id_real}_conduta", 

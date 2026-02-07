@@ -31,18 +31,15 @@ def _render_linha(idx_display, id_real):
     id_real: ID real do exame nos dados (1-8)
     """
     with st.container(border=True):
-        # Título com botões de reordenação no canto superior direito
+        st.markdown(f"<style>input[id*='comp_{id_real}_conduta']{{border-left:4px solid #28a745!important;padding-left:12px!important}}input[id*='comp_{id_real}_conduta'][type='text']{{border-left:4px solid #28a745!important;padding-left:12px!important}}div[data-testid='stTextInput']:has(input[id*='comp_{id_real}_conduta']) input{{border-left:4px solid #28a745!important;padding-left:12px!important}}</style>", unsafe_allow_html=True)
         col_titulo, col_up, col_down = st.columns([10, 1, 1])
-        
         with col_titulo:
             st.markdown(f"**Exame Complementar {idx_display}**")
-        
         with col_up:
             if idx_display > 1:
                 if st.button("↑", key=f"comp_up_pos_{idx_display}", help="Mover para cima"):
                     _trocar_ordem(idx_display-1, idx_display-2)
                     st.rerun()
-        
         with col_down:
             if idx_display < 8:
                 if st.button("↓", key=f"comp_down_pos_{idx_display}", help="Mover para baixo"):
@@ -54,9 +51,6 @@ def _render_linha(idx_display, id_real):
             placeholder="Exemplo: TC de tórax sem contraste - Consolidação em lobo superior direito...",
             height=120
         )
-        
-        # Campo Conduta (com borda verde)
-        st.markdown(f"<style>input[id*='comp_{id_real}_conduta']{{border-left:4px solid #28a745!important;padding-left:12px!important}}input[id*='comp_{id_real}_conduta'][type='text']{{border-left:4px solid #28a745!important;padding-left:12px!important}}div[data-testid='stTextInput']:has(input[id*='comp_{id_real}_conduta']) input{{border-left:4px solid #28a745!important;padding-left:12px!important}}</style>", unsafe_allow_html=True)
         st.text_input(
             f"Conduta {idx_display}",
             key=f"comp_{id_real}_conduta",

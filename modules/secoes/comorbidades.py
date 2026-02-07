@@ -15,10 +15,7 @@ def get_campos():
 def _render_linha(i):
     # Container com borda fina para agrupar a linha
     with st.container(border=True):
-        # CSS compacto para borda verde
         st.markdown(f"<style>input[id*='cmd_{i}_conduta']{{border-left:4px solid #28a745!important;padding-left:12px!important}}input[id*='cmd_{i}_conduta'][type='text']{{border-left:4px solid #28a745!important;padding-left:12px!important}}div[data-testid='stTextInput']:has(input[id*='cmd_{i}_conduta']) input{{border-left:4px solid #28a745!important;padding-left:12px!important}}</style>", unsafe_allow_html=True)
-        
-        # Layout: Nome (Maior), Classificação (Pequeno), Conduta (Médio)
         c1, c2, c3 = st.columns([2, 1, 2], vertical_alignment="bottom")
         
         with c1:
