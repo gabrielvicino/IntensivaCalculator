@@ -59,8 +59,25 @@ def _render_atual(idx_display, id_real):
     idx_display: posição de exibição (1-5)
     id_real: ID real do ATB nos dados (1-5)
     """
-    st.markdown(f"**Antibiótico {idx_display}**")
     with st.container(border=True):
+        # Título com botões de reordenação no canto superior direito
+        col_titulo, col_up, col_down = st.columns([10, 1, 1])
+        
+        with col_titulo:
+            st.markdown(f"**Antibiótico {idx_display}**")
+        
+        with col_up:
+            if idx_display > 1:
+                if st.button("↑", key=f"atb_curr_up_pos_{idx_display}", help="Mover para cima"):
+                    _trocar_ordem_atual(idx_display-1, idx_display-2)
+                    st.rerun()
+        
+        with col_down:
+            if idx_display < 5:
+                if st.button("↓", key=f"atb_curr_down_pos_{idx_display}", help="Mover para baixo"):
+                    _trocar_ordem_atual(idx_display-1, idx_display)
+                    st.rerun()
+        
         # LINHA 1: Nome | Tipo (Bola)
         c1, c2 = st.columns([2, 1.5], vertical_alignment="center")
         with c1:
@@ -100,22 +117,6 @@ def _render_atual(idx_display, id_real):
             label_visibility="collapsed", 
             placeholder="Exemplo: Ajustar para dose renal, Descalonar..."
         )
-        
-        # Botões de reordenação no final
-        st.write("")
-        col_empty, col_up, col_down = st.columns([10, 1, 1])
-        
-        with col_up:
-            if idx_display > 1:
-                if st.button("↑", key=f"atb_curr_up_pos_{idx_display}", help="Mover para cima"):
-                    _trocar_ordem_atual(idx_display-1, idx_display-2)
-                    st.rerun()
-        
-        with col_down:
-            if idx_display < 5:
-                if st.button("↓", key=f"atb_curr_down_pos_{idx_display}", help="Mover para baixo"):
-                    _trocar_ordem_atual(idx_display-1, idx_display)
-                    st.rerun()
 
 # Função Card PRÉVIO
 def _render_previo(idx_display, id_real):
@@ -124,8 +125,25 @@ def _render_previo(idx_display, id_real):
     idx_display: posição de exibição (1-5)
     id_real: ID real do ATB nos dados (1-5)
     """
-    st.markdown(f"**Antibiótico Prévio {idx_display}**")
     with st.container(border=True):
+        # Título com botões de reordenação no canto superior direito
+        col_titulo, col_up, col_down = st.columns([10, 1, 1])
+        
+        with col_titulo:
+            st.markdown(f"**Antibiótico Prévio {idx_display}**")
+        
+        with col_up:
+            if idx_display > 1:
+                if st.button("↑", key=f"atb_prev_up_pos_{idx_display}", help="Mover para cima"):
+                    _trocar_ordem_previo(idx_display-1, idx_display-2)
+                    st.rerun()
+        
+        with col_down:
+            if idx_display < 5:
+                if st.button("↓", key=f"atb_prev_down_pos_{idx_display}", help="Mover para baixo"):
+                    _trocar_ordem_previo(idx_display-1, idx_display)
+                    st.rerun()
+        
         # LINHA 1: Nome | Tipo
         c1, c2 = st.columns([2, 1.5], vertical_alignment="center")
         with c1:
@@ -173,22 +191,6 @@ def _render_previo(idx_display, id_real):
             label_visibility="collapsed", 
             placeholder="Exemplo: Suspenso por escalonamento, Fim de tratamento..."
         )
-        
-        # Botões de reordenação no final
-        st.write("")
-        col_empty, col_up, col_down = st.columns([10, 1, 1])
-        
-        with col_up:
-            if idx_display > 1:
-                if st.button("↑", key=f"atb_prev_up_pos_{idx_display}", help="Mover para cima"):
-                    _trocar_ordem_previo(idx_display-1, idx_display-2)
-                    st.rerun()
-        
-        with col_down:
-            if idx_display < 5:
-                if st.button("↓", key=f"atb_prev_down_pos_{idx_display}", help="Mover para baixo"):
-                    _trocar_ordem_previo(idx_display-1, idx_display)
-                    st.rerun()
 
 # 2. Renderização Principal
 def render():

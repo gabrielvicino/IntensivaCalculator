@@ -66,7 +66,7 @@ def _render_linha(idx_display, id_real):
             st.text_input(f"Data da Retirada", key=f"disp_{id_real}_data_retirada", placeholder="dd/mm/aaaa")
 
         # LINHA 2: Status | Conduta (tudo alinhado)
-        s1, s2 = st.columns([1.5, 4], vertical_alignment="center")
+        s1, s2 = st.columns([1.5, 4], vertical_alignment="bottom")
         
         with s1:
             st.radio(
@@ -78,7 +78,6 @@ def _render_linha(idx_display, id_real):
             )
 
         with s2:
-            st.markdown(f"**Conduta {idx_display}:**")
             st.markdown(
                 f"""
                 <style>
@@ -95,9 +94,8 @@ def _render_linha(idx_display, id_real):
                 unsafe_allow_html=True
             )
             st.text_input(
-                "Conduta", 
+                f"Conduta {idx_display}", 
                 key=f"disp_{id_real}_conduta", 
-                label_visibility="collapsed", 
                 placeholder="Exemplo: Manter, Trocar curativo em 48h..."
             )
 

@@ -31,39 +31,11 @@ def _render_linha(idx_display, id_real):
     id_real: ID real do exame nos dados (1-8)
     """
     with st.container(border=True):
-        st.markdown(f"**Exame Complementar {idx_display}**")
+        # Título com botões de reordenação no canto superior direito
+        col_titulo, col_up, col_down = st.columns([10, 1, 1])
         
-        # Campo Laudo
-        st.text_area(
-            f"Laudos {idx_display}",
-            key=f"comp_{id_real}_laudo",
-            placeholder="Exemplo: TC de tórax sem contraste - Consolidação em lobo superior direito...",
-            height=120
-        )
-        
-        # Campo Conduta (com borda verde)
-        st.markdown(f"**Conduta {idx_display}:**")
-        st.markdown(
-            f"""
-            <style>
-            input[type="text"][id*="comp_{id_real}_conduta"] {{
-                border-left: 4px solid #28a745 !important;
-                padding-left: 12px !important;
-            }}
-            </style>
-            """,
-            unsafe_allow_html=True
-        )
-        st.text_input(
-            "Conduta",
-            key=f"comp_{id_real}_conduta",
-            label_visibility="collapsed",
-            placeholder="Exemplo: Solicitar TC com contraste, Aguardar reavaliação..."
-        )
-        
-        # Botões de reordenação no final
-        st.write("")
-        col_empty, col_up, col_down = st.columns([10, 1, 1])
+        with col_titulo:
+            st.markdown(f"**Exame Complementar {idx_display}**")
         
         with col_up:
             if idx_display > 1:
@@ -76,6 +48,36 @@ def _render_linha(idx_display, id_real):
                 if st.button("↓", key=f"comp_down_pos_{idx_display}", help="Mover para baixo"):
                     _trocar_ordem(idx_display-1, idx_display)
                     st.rerun()
+        
+        # Campo Laudo
+        st.text_area(
+            f"Laudos {idx_display}",
+            key=f"comp_{id_real}_laudo",
+            placeholder="Exemplo: TC de tórax sem contraste - Consolidação em lobo superior direito...",
+            height=120
+        )
+        
+        # Campo Conduta (com borda verde)
+        st.markdown(
+            f"""
+            <style>
+            div[data-testid="stTextInput"] input[placeholder*="Solicitar"] {{
+                border-left: 4px solid #28a745 !important;
+                padding-left: 12px !important;
+            }}
+            input[type="text"][id*="comp_{id_real}_conduta"] {{
+                border-left: 4px solid #28a745 !important;
+                padding-left: 12px !important;
+            }}
+            </style>
+            """,
+            unsafe_allow_html=True
+        )
+        st.text_input(
+            f"Conduta {idx_display}",
+            key=f"comp_{id_real}_conduta",
+            placeholder="Exemplo: Solicitar TC com contraste, Aguardar reavaliação..."
+        )
 
 # 2. Renderização Principal
 def render():
