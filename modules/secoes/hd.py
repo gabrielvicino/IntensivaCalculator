@@ -66,18 +66,8 @@ def _render_card_atual(idx_display, id_real):
                 st.rerun()
     
     with st.container(border=True):
-        # CSS para borda verde (fora do layout)
-        st.markdown(
-            f"""
-            <style>
-            input[type="text"][id*="hd_atual_{id_real}_conduta"] {{
-                border-left: 4px solid #28a745 !important;
-                padding-left: 12px !important;
-            }}
-            </style>
-            """,
-            unsafe_allow_html=True
-        )
+        # CSS compacto para borda verde
+        st.markdown(f"<style>input[type='text'][id*='hd_atual_{id_real}_conduta']{{border-left:4px solid #28a745!important;padding-left:12px!important}}</style>", unsafe_allow_html=True)
         
         # LINHA 1: Hipótese Diagnóstica | Classificação | Data
         c1, c2, c3 = st.columns([3, 1.5, 1])
@@ -98,6 +88,9 @@ def _render_card_atual(idx_display, id_real):
 def _render_card_previo(i):
     st.markdown(f"**Hipótese Diagnóstica Resolvida {i}**")
     with st.container(border=True):
+        # CSS compacto para borda verde
+        st.markdown(f"<style>input[type='text'][id*='hd_prev_{i}_conduta']{{border-left:4px solid #28a745!important;padding-left:12px!important}}</style>", unsafe_allow_html=True)
+        
         c1, c2, c3 = st.columns([3, 1.5, 1])
         c1.text_input(f"Hipótese Diagnóstica Prévia {i}", key=f"hd_prev_{i}_nome", placeholder="Ex: TEP")
         c2.text_input(f"Classificação {i}", key=f"hd_prev_{i}_class", placeholder="Ex: Risco Int.")
@@ -105,18 +98,7 @@ def _render_card_previo(i):
 
         st.text_area(f"Observação {i}", key=f"hd_prev_{i}_obs", height=68)
 
-        # LINHA 3: Conduta Realizada (com mesmo design de borda verde)
-        st.markdown(
-            f"""
-            <style>
-            input[type="text"][id*="hd_prev_{i}_conduta"] {{
-                border-left: 4px solid #28a745 !important;
-                padding-left: 12px !important;
-            }}
-            </style>
-            """,
-            unsafe_allow_html=True
-        )
+        # LINHA 3: Conduta Realizada
         st.text_input(f"✅ Conduta Realizada {i}", key=f"hd_prev_{i}_conduta", placeholder="Conduta que foi tomada...")
 
 # 2. Renderização Principal
