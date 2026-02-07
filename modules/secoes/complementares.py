@@ -48,7 +48,6 @@ def _render_linha(idx_display, id_real):
                 if st.button("↓", key=f"comp_down_pos_{idx_display}", help="Mover para baixo"):
                     _trocar_ordem(idx_display-1, idx_display)
                     st.rerun()
-        
         st.text_area(
             f"Laudos {idx_display}",
             key=f"comp_{id_real}_laudo",
