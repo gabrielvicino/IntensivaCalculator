@@ -201,10 +201,6 @@ def preencher_hmpa(texto, api_key, provider, modelo):
         return {}
 
     try:
-        import json
-        from openai import OpenAI
-        import google.generativeai as genai
-
         if "OpenAI" in provider or "GPT" in provider:
             client = OpenAI(api_key=api_key)
             resp = client.chat.completions.create(

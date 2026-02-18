@@ -76,7 +76,7 @@ Se um campo não tiver correspondência no texto, retorne string vazia "".
 
 def extrair_dados_prontuario(texto_bruto: str, api_key: str, provider: str = "OpenAI GPT", modelo: str = "gpt-4o") -> dict:
     """
-    Envia o prontuário bruto para a IA e retorna um dicionário com os 13 campos extraídos.
+    Envia o prontuário bruto para a IA e retorna um dicionário com os 14 campos extraídos.
     Suporta OpenAI (padrão) e Google Gemini.
     """
     try:

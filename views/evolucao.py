@@ -4,7 +4,7 @@ import os
 from pathlib import Path
 
 # Importa os módulos
-from modules import ui, agentes, fichas, gerador, fluxo, ia_extrator, agentes_secoes
+from modules import ui, fichas, gerador, fluxo, ia_extrator, agentes_secoes
 from utils import load_data, mostrar_rodape
 
 # ==============================================================================
@@ -117,6 +117,12 @@ with st.container():
 ui.render_barra_paciente()
 
 # ==============================================================================
+# HELPER: monta string do provider para as funções de IA
+# ==============================================================================
+def _provider_completo():
+    return f"{provider} {modelo_escolhido}" if provider == "Google Gemini" else provider
+
+# ==============================================================================
 # BLOCO 1: PRONTUÁRIO E SELEÇÃO INTELIGENTE
 # ==============================================================================
 ui.render_header_secao("1. Prontuário", "📄", ui.COLOR_BLUE)
@@ -133,12 +139,11 @@ with st.container(border=True):
         elif not texto_input:
             st.warning("Cole o texto do prontuário primeiro.")
         else:
-            provider_completo = f"{provider} {modelo_escolhido}" if provider == "Google Gemini" else provider
-            with st.spinner("🔪 Fatiando prontuário em 12 seções..."):
+            with st.spinner("🔪 Fatiando prontuário em 14 seções..."):
                 dados_notas = ia_extrator.extrair_dados_prontuario(
                     texto_bruto=texto_input,
                     api_key=api_key,
-                    provider=provider_completo,
+                    provider=_provider_completo(),
                     modelo=modelo_escolhido
                 )
                 fluxo.atualizar_notas_ia(dados_notas)
@@ -188,7 +193,6 @@ with st.container(border=True):
         elif not selecionados:
             st.warning("Selecione pelo menos um agente.")
         else:
-            provider_completo = f"{provider} {modelo_escolhido}" if provider == "Google Gemini" else provider
             erros = []
             progresso = st.progress(0, text="Iniciando agentes...")
             total = len(selecionados)
@@ -204,7 +208,7 @@ with st.container(border=True):
                     continue
 
                 fn = agentes_secoes._AGENTES[secao]
-                dados = fn(texto_secao, api_key, provider_completo, modelo_escolhido)
+                dados = fn(texto_secao, api_key, _provider_completo(), modelo_escolhido)
 
                 if "_erro" in dados:
                     erros.append(f"{nome}: {dados['_erro']}")
