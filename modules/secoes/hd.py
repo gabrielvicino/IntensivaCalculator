@@ -2,7 +2,7 @@ import streamlit as st
 
 # 1. Definição das Variáveis
 def get_campos():
-    campos = {}
+    campos = {'hd_notas': ''}
     
     # 4 Slots para Atuais
     for i in range(1, 5):
@@ -66,7 +66,6 @@ def _render_card_atual(idx_display, id_real):
                 st.rerun()
     
     with st.container(border=True):
-        st.markdown(f"<style>input[id*='hd_atual_{id_real}_conduta']{{border-left:4px solid #28a745!important;padding-left:12px!important}}input[id*='hd_atual_{id_real}_conduta'][type='text']{{border-left:4px solid #28a745!important;padding-left:12px!important}}div[data-testid='stTextInput']:has(input[id*='hd_atual_{id_real}_conduta']) input{{border-left:4px solid #28a745!important;padding-left:12px!important}}</style>", unsafe_allow_html=True)
         c1, c2, c3 = st.columns([3, 1.5, 1])
         with c1:
             st.text_input(f"Hipótese Diagnóstica Atual {idx_display}", key=f"hd_atual_{id_real}_nome", placeholder="Ex: Lesão Renal Aguda")
@@ -79,13 +78,13 @@ def _render_card_atual(idx_display, id_real):
         st.text_area(f"Observação Hipótese Diagnóstica {idx_display}", key=f"hd_atual_{id_real}_obs", height=68, placeholder="Observações sobre a evolução da Hipótese Diagnóstica...")
         
         # LINHA 3: Conduta
-        st.text_input(f"Conduta {idx_display}", key=f"hd_atual_{id_real}_conduta", placeholder="Digite a conduta aqui...")
+        with st.success("Conduta"):
+            st.text_input(f"Conduta {idx_display}", key=f"hd_atual_{id_real}_conduta", placeholder="Digite a conduta aqui...", label_visibility="collapsed")
 
 # Função Card PRÉVIO
 def _render_card_previo(i):
     st.markdown(f"**Hipótese Diagnóstica Resolvida {i}**")
     with st.container(border=True):
-        st.markdown(f"<style>input[id*='hd_prev_{i}_conduta']{{border-left:4px solid #28a745!important;padding-left:12px!important}}input[id*='hd_prev_{i}_conduta'][type='text']{{border-left:4px solid #28a745!important;padding-left:12px!important}}div[data-testid='stTextInput']:has(input[id*='hd_prev_{i}_conduta']) input{{border-left:4px solid #28a745!important;padding-left:12px!important}}</style>", unsafe_allow_html=True)
         c1, c2, c3 = st.columns([3, 1.5, 1])
         c1.text_input(f"Hipótese Diagnóstica Prévia {i}", key=f"hd_prev_{i}_nome", placeholder="Ex: TEP")
         c2.text_input(f"Classificação {i}", key=f"hd_prev_{i}_class", placeholder="Ex: Risco Int.")
@@ -94,11 +93,15 @@ def _render_card_previo(i):
         st.text_area(f"Observação {i}", key=f"hd_prev_{i}_obs", height=68)
 
         # LINHA 3: Conduta Realizada
-        st.text_input(f"✅ Conduta Realizada {i}", key=f"hd_prev_{i}_conduta", placeholder="Conduta que foi tomada...")
+        with st.success("Conduta Realizada"):
+            st.text_input(f"✅ Conduta Realizada {i}", key=f"hd_prev_{i}_conduta", placeholder="Conduta que foi tomada...", label_visibility="collapsed")
 
 # 2. Renderização Principal
 def render():
     st.markdown("##### 2. Diagnósticos Atuais & Prévios")
+    
+    st.text_area("Notas", key="hd_notas", height="content", placeholder="Cole neste campo a evolução...", label_visibility="collapsed")
+    st.write("")
     
     # Inicializa ordem
     _inicializar_ordem()

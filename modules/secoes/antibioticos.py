@@ -27,7 +27,7 @@ def _trocar_ordem_previo(idx1, idx2):
 
 # 1. Definição das Variáveis
 def get_campos():
-    campos = {}
+    campos = {'antibioticos_notas': ''}
     
     # --- 5 Slots para ATUAIS ---
     for i in range(1, 6):
@@ -60,7 +60,6 @@ def _render_atual(idx_display, id_real):
     id_real: ID real do ATB nos dados (1-5)
     """
     with st.container(border=True):
-        st.markdown(f"<style>input[id*='atb_curr_{id_real}_conduta']{{border-left:4px solid #28a745!important;padding-left:12px!important}}input[id*='atb_curr_{id_real}_conduta'][type='text']{{border-left:4px solid #28a745!important;padding-left:12px!important}}div[data-testid='stTextInput']:has(input[id*='atb_curr_{id_real}_conduta']) input{{border-left:4px solid #28a745!important;padding-left:12px!important}}</style>", unsafe_allow_html=True)
         col_titulo, col_up, col_down = st.columns([10, 1, 1])
         with col_titulo:
             st.markdown(f"**Antibiótico {idx_display}**")
@@ -93,11 +92,13 @@ def _render_atual(idx_display, id_real):
         with d2:
             st.text_input("Término Previsto (dd/mm/aaaa)", key=f"atb_curr_{id_real}_data_fim", placeholder="dd/mm/aaaa")
             
-        st.text_input(
-            f"Conduta {idx_display}", 
-            key=f"atb_curr_{id_real}_conduta", 
-            placeholder="Exemplo: Ajustar para dose renal, Descalonar..."
-        )
+        with st.success("Conduta"):
+            st.text_input(
+                f"Conduta {idx_display}",
+                key=f"atb_curr_{id_real}_conduta",
+                placeholder="Exemplo: Ajustar para dose renal, Descalonar...",
+                label_visibility="collapsed"
+            )
 
 # Função Card PRÉVIO
 def _render_previo(idx_display, id_real):
@@ -107,7 +108,6 @@ def _render_previo(idx_display, id_real):
     id_real: ID real do ATB nos dados (1-5)
     """
     with st.container(border=True):
-        st.markdown(f"<style>input[id*='atb_prev_{id_real}_conduta']{{border-left:4px solid #28a745!important;padding-left:12px!important}}input[id*='atb_prev_{id_real}_conduta'][type='text']{{border-left:4px solid #28a745!important;padding-left:12px!important}}div[data-testid='stTextInput']:has(input[id*='atb_prev_{id_real}_conduta']) input{{border-left:4px solid #28a745!important;padding-left:12px!important}}</style>", unsafe_allow_html=True)
         col_titulo, col_up, col_down = st.columns([10, 1, 1])
         with col_titulo:
             st.markdown(f"**Antibiótico Prévio {idx_display}**")
@@ -148,15 +148,20 @@ def _render_previo(idx_display, id_real):
             height=80
         )
 
-        st.text_input(
-            f"Conduta {idx_display}", 
-            key=f"atb_prev_{id_real}_conduta", 
-            placeholder="Exemplo: Suspenso por escalonamento, Fim de tratamento..."
-        )
+        with st.success("Conduta"):
+            st.text_input(
+                f"Conduta {idx_display}",
+                key=f"atb_prev_{id_real}_conduta",
+                placeholder="Exemplo: Suspenso por escalonamento, Fim de tratamento...",
+                label_visibility="collapsed"
+            )
 
 # 2. Renderização Principal
 def render():
     st.markdown("##### 8. Antibióticos")
+    
+    st.text_area("Notas", key="antibioticos_notas", height="content", placeholder="Cole neste campo a evolução...", label_visibility="collapsed")
+    st.write("")
     
     # Inicializa ordens
     _inicializar_ordem_atual()

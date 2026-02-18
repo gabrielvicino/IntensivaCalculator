@@ -3,6 +3,7 @@ import streamlit as st
 # 1. Definição das Variáveis
 def get_campos():
     return {
+        'identificacao_notas': '',
         # Identidade
         'nome': '', 'idade': 0, 'sexo': 'Masculino', 'prontuario': '', 'leito': '', 'origem': '', 'equipe': '',
         'di_hosp': '', 'di_uti': '', 'di_enf': '',
@@ -15,6 +16,9 @@ def get_campos():
 # 2. Renderização Visual
 def render():
     st.markdown("##### 1. Identificação & Scores")
+    
+    st.text_area("Notas", key="identificacao_notas", height="content", placeholder="Cole neste campo a evolução...", label_visibility="collapsed")
+    st.write("")
     
     with st.container(border=True):
         # --- PARTE A: IDENTIFICAÇÃO ---

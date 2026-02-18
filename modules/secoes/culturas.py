@@ -15,7 +15,7 @@ def _trocar_ordem(idx1, idx2):
 
 # 1. Definição das Variáveis (8 Slots Total)
 def get_campos():
-    campos = {}
+    campos = {'culturas_notas': ''}
     for i in range(1, 9):
         campos.update({
             f'cult_{i}_sitio': '',
@@ -37,7 +37,6 @@ def _render_linha(idx_display, id_real):
     id_real: ID real da cultura nos dados (1-8)
     """
     with st.container(border=True):
-        st.markdown(f"<style>input[id*='cult_{id_real}_conduta']{{border-left:4px solid #28a745!important;padding-left:12px!important}}input[id*='cult_{id_real}_conduta'][type='text']{{border-left:4px solid #28a745!important;padding-left:12px!important}}div[data-testid='stTextInput']:has(input[id*='cult_{id_real}_conduta']) input{{border-left:4px solid #28a745!important;padding-left:12px!important}}</style>", unsafe_allow_html=True)
         col_titulo, col_up, col_down = st.columns([10, 1, 1])
         with col_titulo:
             st.markdown(f"**Cultura {idx_display}**")
@@ -78,15 +77,20 @@ def _render_linha(idx_display, id_real):
         with m2:
             st.text_input(f"Perfil Sensibilidade {idx_display}", key=f"cult_{id_real}_sensib", placeholder="Exemplo: Sensível a Polimixina B")
 
-        st.text_input(
-            f"Conduta {idx_display}", 
-            key=f"cult_{id_real}_conduta", 
-            placeholder="Exemplo: Escalonar antibiótico..."
-        )
+        with st.success("Conduta"):
+            st.text_input(
+                f"Conduta {idx_display}",
+                key=f"cult_{id_real}_conduta",
+                placeholder="Exemplo: Escalonar antibiótico...",
+                label_visibility="collapsed"
+            )
 
 # 2. Renderização Principal
 def render():
     st.markdown("##### 7. Culturas")
+    
+    st.text_area("Notas", key="culturas_notas", height="content", placeholder="Cole neste campo a evolução...", label_visibility="collapsed")
+    st.write("")
     
     # Inicializa ordem
     _inicializar_ordem()

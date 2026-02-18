@@ -2,7 +2,7 @@ import streamlit as st
 
 # 1. Definição das Variáveis (10 Slots Total)
 def get_campos():
-    campos = {}
+    campos = {'comorbidades_notas': ''}
     for i in range(1, 11):
         campos.update({
             f'cmd_{i}_nome': '',
@@ -15,21 +15,20 @@ def get_campos():
 def _render_linha(i):
     # Container com borda fina para agrupar a linha
     with st.container(border=True):
-        st.markdown(f"<style>input[id*='cmd_{i}_conduta']{{border-left:4px solid #28a745!important;padding-left:12px!important}}input[id*='cmd_{i}_conduta'][type='text']{{border-left:4px solid #28a745!important;padding-left:12px!important}}div[data-testid='stTextInput']:has(input[id*='cmd_{i}_conduta']) input{{border-left:4px solid #28a745!important;padding-left:12px!important}}</style>", unsafe_allow_html=True)
-        c1, c2, c3 = st.columns([2, 1, 2], vertical_alignment="bottom")
-        
+        c1, c2 = st.columns([2, 1], vertical_alignment="bottom")
         with c1:
             st.text_input(f"Comorbidade {i}", key=f"cmd_{i}_nome", placeholder="Ex: HAS")
-        
         with c2:
             st.text_input(f"Classificação {i}", key=f"cmd_{i}_class", placeholder="Ex: Estágio 2")
-            
-        with c3:
-            st.text_input(f"Conduta {i}", key=f"cmd_{i}_conduta", placeholder="Ex: Manter Losartana")
+        with st.success("Conduta"):
+            st.text_input(f"Conduta {i}", key=f"cmd_{i}_conduta", placeholder="Ex: Manter Losartana", label_visibility="collapsed")
 
 # 2. Renderização Principal
 def render():
     st.markdown("##### 3. Comorbidades")
+    
+    st.text_area("Notas", key="comorbidades_notas", height="content", placeholder="Cole neste campo a evolução...", label_visibility="collapsed")
+    st.write("")
     
     # --- 3 Comorbidades VISÍVEIS ---
     for i in range(1, 4):

@@ -15,7 +15,7 @@ def _trocar_ordem(idx1, idx2):
 
 # 1. Definição das Variáveis (8 Slots Total)
 def get_campos():
-    campos = {}
+    campos = {'dispositivos_notas': ''}
     for i in range(1, 9):
         campos.update({
             f'disp_{i}_nome': '',
@@ -35,7 +35,6 @@ def _render_linha(idx_display, id_real):
     id_real: ID real do dispositivo nos dados (1-8)
     """
     with st.container(border=True):
-        st.markdown(f"<style>input[id*='disp_{id_real}_conduta']{{border-left:4px solid #28a745!important;padding-left:12px!important}}input[id*='disp_{id_real}_conduta'][type='text']{{border-left:4px solid #28a745!important;padding-left:12px!important}}div[data-testid='stTextInput']:has(input[id*='disp_{id_real}_conduta']) input{{border-left:4px solid #28a745!important;padding-left:12px!important}}</style>", unsafe_allow_html=True)
         col_titulo, col_up, col_down = st.columns([10, 1, 1])
         with col_titulo:
             st.markdown(f"**Dispositivo {idx_display}**")
@@ -58,26 +57,27 @@ def _render_linha(idx_display, id_real):
             st.text_input(f"Data da Inserção", key=f"disp_{id_real}_data_insercao", placeholder="dd/mm/aaaa")
         with c4:
             st.text_input(f"Data da Retirada", key=f"disp_{id_real}_data_retirada", placeholder="dd/mm/aaaa")
-        s1, s2 = st.columns([1.5, 4], vertical_alignment="bottom")
-        with s1:
-            st.radio(
-                f"Status {idx_display}", 
-                ["Ativo", "Removido"], 
-                key=f"disp_{id_real}_status", 
-                horizontal=True,
-                label_visibility="collapsed"
-            )
-
-        with s2:
+        st.radio(
+            f"Status {idx_display}",
+            ["Ativo", "Removido"],
+            key=f"disp_{id_real}_status",
+            horizontal=True,
+            label_visibility="collapsed"
+        )
+        with st.success("Conduta"):
             st.text_input(
-                f"Conduta {idx_display}", 
-                key=f"disp_{id_real}_conduta", 
-                placeholder="Exemplo: Manter, Trocar curativo em 48h..."
+                f"Conduta {idx_display}",
+                key=f"disp_{id_real}_conduta",
+                placeholder="Exemplo: Manter, Trocar curativo em 48h...",
+                label_visibility="collapsed"
             )
 
 # 2. Renderização Principal
 def render():
     st.markdown("##### 6. Dispositivos Invasivos")
+    
+    st.text_area("Notas", key="dispositivos_notas", height="content", placeholder="Cole neste campo a evolução...", label_visibility="collapsed")
+    st.write("")
     
     # Inicializa ordem
     _inicializar_ordem()

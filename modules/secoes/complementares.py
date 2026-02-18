@@ -15,7 +15,7 @@ def _trocar_ordem(idx1, idx2):
 
 # 1. Definição das Variáveis (8 Slots Total)
 def get_campos():
-    campos = {}
+    campos = {'complementares_notas': ''}
     for i in range(1, 9):
         campos.update({
             f'comp_{i}_laudo': '',
@@ -31,7 +31,6 @@ def _render_linha(idx_display, id_real):
     id_real: ID real do exame nos dados (1-8)
     """
     with st.container(border=True):
-        st.markdown(f"<style>input[id*='comp_{id_real}_conduta']{{border-left:4px solid #28a745!important;padding-left:12px!important}}input[id*='comp_{id_real}_conduta'][type='text']{{border-left:4px solid #28a745!important;padding-left:12px!important}}div[data-testid='stTextInput']:has(input[id*='comp_{id_real}_conduta']) input{{border-left:4px solid #28a745!important;padding-left:12px!important}}</style>", unsafe_allow_html=True)
         col_titulo, col_up, col_down = st.columns([10, 1, 1])
         with col_titulo:
             st.markdown(f"**Exame Complementar {idx_display}**")
@@ -51,15 +50,20 @@ def _render_linha(idx_display, id_real):
             placeholder="Exemplo: TC de tórax sem contraste - Consolidação em lobo superior direito...",
             height=120
         )
-        st.text_input(
-            f"Conduta {idx_display}",
-            key=f"comp_{id_real}_conduta",
-            placeholder="Exemplo: Solicitar TC com contraste, Aguardar reavaliação..."
-        )
+        with st.success("Conduta"):
+            st.text_input(
+                f"Conduta {idx_display}",
+                key=f"comp_{id_real}_conduta",
+                placeholder="Exemplo: Solicitar TC com contraste, Aguardar reavaliação...",
+                label_visibility="collapsed"
+            )
 
 # 2. Renderização Principal
 def render():
     st.markdown("##### 9. Exames Complementares")
+    
+    st.text_area("Notas", key="complementares_notas", height="content", placeholder="Cole neste campo a evolução...", label_visibility="collapsed")
+    st.write("")
     
     # Inicializa ordem
     _inicializar_ordem()

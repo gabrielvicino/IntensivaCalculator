@@ -2,7 +2,7 @@ import streamlit as st
 
 # 1. Definição das Variáveis (10 Slots de Data)
 def get_campos():
-    campos = {}
+    campos = {'laboratoriais_notas': ''}
     
     for i in range(1, 11):
         campos.update({
@@ -54,8 +54,6 @@ def _render_slot(i):
         c_tit, c_date = st.columns([2, 1], vertical_alignment="center")
         c_tit.markdown(f"**{titulo}**")
         c_date.text_input(f"Data #{i}", key=f'lab_{i}_data', placeholder="DD/MM", label_visibility="collapsed")
-        
-        # Removi o "---" daqui para não quebrar o visual
         
         # LINHA 1: Hemato
         cols1 = st.columns([1, 1, 1, 1, 1, 2.5, 1.2])
@@ -155,6 +153,9 @@ def _render_slot(i):
 # 2. Renderização Principal
 def render():
     st.markdown("##### 10. Laboratoriais (Curva)")
+    
+    st.text_area("Notas", key="laboratoriais_notas", height="content", placeholder="Cole neste campo a evolução...", label_visibility="collapsed")
+    st.write("")
     
     # --- 2 Datas VISÍVEIS ---
     _render_slot(1)

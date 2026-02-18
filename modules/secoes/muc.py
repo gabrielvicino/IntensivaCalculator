@@ -3,6 +3,7 @@ import streamlit as st
 # 1. Definição das Variáveis
 def get_campos():
     campos = {
+        'muc_notas': '',
         # Campo Único Global de Adesão
         'muc_adesao_global': 'Uso Regular'
     }
@@ -38,7 +39,6 @@ def _render_linha(idx_display, id_real):
     id_real: ID real da medicação nos dados (1-10)
     """
     with st.container(border=True):
-        st.markdown(f"<style>input[id*='muc_{id_real}_conduta']{{border-left:4px solid #28a745!important;padding-left:12px!important}}input[id*='muc_{id_real}_conduta'][type='text']{{border-left:4px solid #28a745!important;padding-left:12px!important}}div[data-testid='stTextInput']:has(input[id*='muc_{id_real}_conduta']) input{{border-left:4px solid #28a745!important;padding-left:12px!important}}</style>", unsafe_allow_html=True)
         # Título com botões de reordenação
         col_titulo, col_up, col_down = st.columns([10, 1, 1])
         
@@ -66,11 +66,15 @@ def _render_linha(idx_display, id_real):
         with c3:
             st.text_input(f"Frequência {idx_display}", key=f"muc_{id_real}_freq", placeholder="Exemplo: 12/12h")
         
-        st.text_input(f"Conduta {idx_display}", key=f"muc_{id_real}_conduta", placeholder="Exemplo: Manter, Suspender ou Ajustar")
+        with st.success("Conduta"):
+            st.text_input(f"Conduta {idx_display}", key=f"muc_{id_real}_conduta", placeholder="Exemplo: Manter, Suspender ou Ajustar", label_visibility="collapsed")
 
 # 2. Renderização Principal
 def render():
     st.markdown("##### 4. Medicações de Uso Contínuo")
+    
+    st.text_area("Notas", key="muc_notas", height="content", placeholder="Cole neste campo a evolução...", label_visibility="collapsed")
+    st.write("")
     
     # Inicializa ordem
     _inicializar_ordem()
