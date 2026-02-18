@@ -42,11 +42,11 @@ def _render_linha(idx_display, id_real):
             st.markdown(f"**Cultura {idx_display}**")
         with col_up:
             if idx_display > 1:
-                st.form_submit_button("↑", help="Mover para cima",
+                st.form_submit_button("↑", key=f"cult_up_{idx_display}", help="Mover para cima",
                     on_click=_trocar_ordem, args=(idx_display-1, idx_display-2))
         with col_down:
             if idx_display < 8:
-                st.form_submit_button("↓", help="Mover para baixo",
+                st.form_submit_button("↓", key=f"cult_down_{idx_display}", help="Mover para baixo",
                     on_click=_trocar_ordem, args=(idx_display-1, idx_display))
         c1, c2, c3, c4 = st.columns([2.5, 1.2, 1.2, 1.2], vertical_alignment="bottom")
         with c1:
