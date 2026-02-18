@@ -36,14 +36,12 @@ def _render_linha(idx_display, id_real):
             st.markdown(f"**Exame Complementar {idx_display}**")
         with col_up:
             if idx_display > 1:
-                if st.button("↑", key=f"comp_up_pos_{idx_display}", help="Mover para cima"):
-                    _trocar_ordem(idx_display-1, idx_display-2)
-                    st.rerun()
+                st.form_submit_button("↑", help="Mover para cima",
+                    on_click=_trocar_ordem, args=(idx_display-1, idx_display-2))
         with col_down:
             if idx_display < 8:
-                if st.button("↓", key=f"comp_down_pos_{idx_display}", help="Mover para baixo"):
-                    _trocar_ordem(idx_display-1, idx_display)
-                    st.rerun()
+                st.form_submit_button("↓", help="Mover para baixo",
+                    on_click=_trocar_ordem, args=(idx_display-1, idx_display))
         st.text_area(
             f"Laudos {idx_display}",
             key=f"comp_{id_real}_laudo",

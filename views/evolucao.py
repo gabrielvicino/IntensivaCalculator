@@ -225,9 +225,19 @@ with st.container(border=True):
 
 # ==============================================================================
 # BLOCO 2: DADOS CLÍNICOS
+# st.form bate zero rerun em qualquer widget — só recarrega no submit
 # ==============================================================================
 ui.render_header_secao("2. Dados Clínicos", "✍️", "#f59e0b")
-fichas.render_formulario_completo()
+
+with st.form("form_dados_clinicos"):
+    fichas.render_formulario_completo()
+
+    st.write("")
+    submitted = st.form_submit_button(
+        "📋 Prontuário Completo", type="primary", use_container_width=True
+    )
+    if submitted:
+        st.session_state.texto_final_gerado = gerador.gerar_texto_final()
 
 # ==============================================================================
 # BLOCO 3: PRONTUÁRIO COMPLETO
@@ -240,12 +250,15 @@ with c_head_1:
 with c_head_2:
     if st.button("📋 Copiar Texto", use_container_width=True):
         st.toast("Texto copiado!", icon="📋")
-    st.markdown('<div style="height: 12px"></div>', unsafe_allow_html=True) 
-
-txt_final = gerador.gerar_texto_final()
+    st.markdown('<div style="height: 12px"></div>', unsafe_allow_html=True)
 
 with st.container(border=True):
-    st.text_area("Final", value=txt_final, height=200, label_visibility="collapsed")
+    st.text_area(
+        "Final",
+        value=st.session_state.get("texto_final_gerado", ""),
+        height=200,
+        label_visibility="collapsed",
+    )
 
 # ==============================================================================
 # RODAPÉ

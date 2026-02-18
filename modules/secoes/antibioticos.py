@@ -65,14 +65,12 @@ def _render_atual(idx_display, id_real):
             st.markdown(f"**Antibiótico {idx_display}**")
         with col_up:
             if idx_display > 1:
-                if st.button("↑", key=f"atb_curr_up_pos_{idx_display}", help="Mover para cima"):
-                    _trocar_ordem_atual(idx_display-1, idx_display-2)
-                    st.rerun()
+                st.form_submit_button("↑", help="Mover para cima",
+                    on_click=_trocar_ordem_atual, args=(idx_display-1, idx_display-2))
         with col_down:
             if idx_display < 5:
-                if st.button("↓", key=f"atb_curr_down_pos_{idx_display}", help="Mover para baixo"):
-                    _trocar_ordem_atual(idx_display-1, idx_display)
-                    st.rerun()
+                st.form_submit_button("↓", help="Mover para baixo",
+                    on_click=_trocar_ordem_atual, args=(idx_display-1, idx_display))
         c1, c2 = st.columns([2, 1.5], vertical_alignment="center")
         with c1:
             st.text_input(f"Antibiótico {idx_display}", key=f"atb_curr_{id_real}_nome", placeholder="Exemplo: Meropenem")
@@ -114,14 +112,12 @@ def _render_previo(idx_display, id_real):
             st.markdown(f"**Antibiótico Prévio {idx_display}**")
         with col_up:
             if idx_display > 1:
-                if st.button("↑", key=f"atb_prev_up_pos_{idx_display}", help="Mover para cima"):
-                    _trocar_ordem_previo(idx_display-1, idx_display-2)
-                    st.rerun()
+                st.form_submit_button("↑", help="Mover para cima",
+                    on_click=_trocar_ordem_previo, args=(idx_display-1, idx_display-2))
         with col_down:
             if idx_display < 5:
-                if st.button("↓", key=f"atb_prev_down_pos_{idx_display}", help="Mover para baixo"):
-                    _trocar_ordem_previo(idx_display-1, idx_display)
-                    st.rerun()
+                st.form_submit_button("↓", help="Mover para baixo",
+                    on_click=_trocar_ordem_previo, args=(idx_display-1, idx_display))
         c1, c2 = st.columns([2, 1.5], vertical_alignment="center")
         with c1:
             st.text_input(f"Antibiótico Prévio {idx_display}", key=f"atb_prev_{id_real}_nome", placeholder="Exemplo: Ceftriaxone")

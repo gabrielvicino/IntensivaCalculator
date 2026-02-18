@@ -54,16 +54,14 @@ def _render_card_atual(idx_display, id_real):
         st.markdown(f"**Hipótese Diagnóstica {idx_display}**")
     
     with col_up:
-        if idx_display > 1:  # Só mostra se não for o primeiro
-            if st.button("↑", key=f"up_pos_{idx_display}", help="Mover para cima"):
-                _trocar_ordem(idx_display-1, idx_display-2)
-                st.rerun()
-    
+        if idx_display > 1:
+            st.form_submit_button("↑", help="Mover para cima",
+                on_click=_trocar_ordem, args=(idx_display-1, idx_display-2))
+
     with col_down:
-        if idx_display < 4:  # Só mostra se não for o último
-            if st.button("↓", key=f"down_pos_{idx_display}", help="Mover para baixo"):
-                _trocar_ordem(idx_display-1, idx_display)
-                st.rerun()
+        if idx_display < 4:
+            st.form_submit_button("↓", help="Mover para baixo",
+                on_click=_trocar_ordem, args=(idx_display-1, idx_display))
     
     with st.container(border=True):
         c1, c2, c3 = st.columns([3, 1.5, 1])

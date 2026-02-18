@@ -40,14 +40,12 @@ def _render_linha(idx_display, id_real):
             st.markdown(f"**Dispositivo {idx_display}**")
         with col_up:
             if idx_display > 1:
-                if st.button("↑", key=f"disp_up_pos_{idx_display}", help="Mover para cima"):
-                    _trocar_ordem(idx_display-1, idx_display-2)
-                    st.rerun()
+                st.form_submit_button("↑", help="Mover para cima",
+                    on_click=_trocar_ordem, args=(idx_display-1, idx_display-2))
         with col_down:
             if idx_display < 8:
-                if st.button("↓", key=f"disp_down_pos_{idx_display}", help="Mover para baixo"):
-                    _trocar_ordem(idx_display-1, idx_display)
-                    st.rerun()
+                st.form_submit_button("↓", help="Mover para baixo",
+                    on_click=_trocar_ordem, args=(idx_display-1, idx_display))
         c1, c2, c3, c4 = st.columns([2, 2, 1.2, 1.2], vertical_alignment="bottom")
         with c1:
             st.text_input(f"Dispositivo {idx_display}", key=f"disp_{id_real}_nome", placeholder="Exemplo: CVC, PAM, SVD")

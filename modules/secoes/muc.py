@@ -47,15 +47,13 @@ def _render_linha(idx_display, id_real):
         
         with col_up:
             if idx_display > 1:
-                if st.button("↑", key=f"muc_up_pos_{idx_display}", help="Mover para cima"):
-                    _trocar_ordem(idx_display-1, idx_display-2)
-                    st.rerun()
-        
+                st.form_submit_button("↑", help="Mover para cima",
+                    on_click=_trocar_ordem, args=(idx_display-1, idx_display-2))
+
         with col_down:
             if idx_display < 10:
-                if st.button("↓", key=f"muc_down_pos_{idx_display}", help="Mover para baixo"):
-                    _trocar_ordem(idx_display-1, idx_display)
-                    st.rerun()
+                st.form_submit_button("↓", help="Mover para baixo",
+                    on_click=_trocar_ordem, args=(idx_display-1, idx_display))
         
         c1, c2, c3 = st.columns([3, 1, 1.2], vertical_alignment="bottom")
         
