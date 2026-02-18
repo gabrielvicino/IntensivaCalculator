@@ -4,7 +4,7 @@ import os
 from pathlib import Path
 
 # Importa os módulos
-from modules import ui, agentes, fichas, gerador, fluxo, ia_extrator
+from modules import ui, agentes, fichas, gerador, fluxo, ia_extrator, agentes_secoes
 from utils import load_data, mostrar_rodape
 
 # ==============================================================================
@@ -122,112 +122,102 @@ ui.render_barra_paciente()
 ui.render_header_secao("1. Prontuário", "📄", ui.COLOR_BLUE)
 
 with st.container(border=True):
-    # 1. Área de Texto
     texto_input = st.text_area("Input", height=150, label_visibility="collapsed", placeholder="Cole a evolução aqui (Ctrl+V)...")
-    
-    st.markdown("---")
-    
-    # --- RÓTULO ELEGANTE ---
-    st.markdown("""
-    <div style="font-size: 1.1rem; font-weight: 600; color: #444; margin-bottom: 10px;">
-        🤖 Selecione os itens para extração:
-    </div>
-    """, unsafe_allow_html=True)
-    
-    # --- DEFINIÇÃO DOS AGENTES ---
-    agentes_map = {
-        "1. Identificação": "identidade",
-        "2. HD e Motivo": "hd",
-        "3. Comorbidades": "comorbidades",
-        "4. MUC / Alergias": "muc",
-        "5. HMPA / Neuro": "hmpa",
-        "6. Dispositivos": "dispositivos",
-        "7. Culturas": "culturas",
-        "8. Antibióticos": "antibioticos",
-        "9. Complementares": "complementares",
-        "10. Laboratoriais": "laboratoriais",
-        "11. Evolução Clínica": "evolucao_clinica",
-        "12. Sistemas": "sistemas"
-    }
-    
-    chaves_agentes = list(agentes_map.values())
 
-    # --- LÓGICA DE PRÉ-SELEÇÃO (Defaults: 6 ao 12) ---
-    defaults_ativos = [
-        "dispositivos", "culturas", "antibioticos", "complementares", 
-        "laboratoriais", "evolucao_clinica", "sistemas"
-    ]
+    st.write("")
 
-    for chave in chaves_agentes:
-        key_widget = f"chk_{chave}"
-        if key_widget not in st.session_state:
-            st.session_state[key_widget] = (chave in defaults_ativos)
+    # BOTÃO 1: apenas fatia o prontuário nos campos _notas
+    if st.button("✨ Extrair Dados Selecionados", type="primary", use_container_width=True):
+        if not api_key:
+            st.error("Sem chave API.")
+        elif not texto_input:
+            st.warning("Cole o texto do prontuário primeiro.")
+        else:
+            provider_completo = f"{provider} {modelo_escolhido}" if provider == "Google Gemini" else provider
+            with st.spinner("🔪 Fatiando prontuário em 12 seções..."):
+                dados_notas = ia_extrator.extrair_dados_prontuario(
+                    texto_bruto=texto_input,
+                    api_key=api_key,
+                    provider=provider_completo,
+                    modelo=modelo_escolhido
+                )
+                fluxo.atualizar_notas_ia(dados_notas)
 
-    # --- CALLBACK PARA O BOTÃO MESTRE ---
-    def alternar_todos():
-        estado_novo = st.session_state.toggle_mestre
-        for chave in chaves_agentes:
-            st.session_state[f"chk_{chave}"] = estado_novo
+# ---------------------------------------------------------------------------
+# BLOCO DE AGENTES: checklist + botão aplicar
+# ---------------------------------------------------------------------------
+with st.container(border=True):
+    st.markdown("**🤖 Agentes de preenchimento automático**")
+    st.caption("Selecione quais seções deseja preencher com IA e clique em Aplicar.")
 
-    # --- RENDERIZAÇÃO VISUAL ---
-    col_mestre, col_info = st.columns([2, 5], vertical_alignment="center")
-    with col_mestre:
-        st.toggle(
-            "Selecionar Todos / Nenhum", 
-            key="toggle_mestre", 
-            on_change=alternar_todos,
-            value=False 
-        )
-    
-    st.markdown("") # Espaço
+    # Inicializar estado dos checkboxes
+    # Padrão: apenas seções 10+ (laboratoriais em diante) marcadas
+    _AGENTES_PADRAO_ATIVO = {"laboratoriais", "controles", "evolucao", "sistemas"}
+    _agentes_labels = list(agentes_secoes.NOMES_SECOES.items())  # [(chave, "1. Nome"), ...]
+    for chave, _ in _agentes_labels:
+        if f"ag_chk_{chave}" not in st.session_state:
+            st.session_state[f"ag_chk_{chave}"] = chave in _AGENTES_PADRAO_ATIVO
 
-    # Grid de Checkboxes
+    # Toggle mestre
+    def _toggle_agentes():
+        estado = st.session_state["ag_toggle_mestre"]
+        for chave, _ in _agentes_labels:
+            st.session_state[f"ag_chk_{chave}"] = estado
+
+    col_tog, _ = st.columns([2, 5])
+    with col_tog:
+        st.toggle("Selecionar todos / Nenhum", key="ag_toggle_mestre",
+                  value=True, on_change=_toggle_agentes)
+
+    st.write("")
+
+    # Grid 4 colunas com checkboxes
     cols = st.columns(4)
-    selecionados_para_ia = []
+    selecionados = []
+    for i, (chave, label) in enumerate(_agentes_labels):
+        with cols[i % 4]:
+            if st.checkbox(label, key=f"ag_chk_{chave}"):
+                selecionados.append(chave)
 
-    for i, (label, chave) in enumerate(agentes_map.items()):
-        col = cols[i % 4]
-        is_checked = col.checkbox(label, key=f"chk_{chave}")
-        
-        if is_checked:
-            selecionados_para_ia.append(chave)
+    st.write("")
 
-    st.write("") # Espaço
+    # BOTÃO 2: roda apenas os agentes selecionados
+    if st.button("🚀 Aplicar Agentes Selecionados", type="primary", use_container_width=True):
+        if not api_key:
+            st.error("Sem chave API.")
+        elif not selecionados:
+            st.warning("Selecione pelo menos um agente.")
+        else:
+            provider_completo = f"{provider} {modelo_escolhido}" if provider == "Google Gemini" else provider
+            erros = []
+            progresso = st.progress(0, text="Iniciando agentes...")
+            total = len(selecionados)
 
-    # 3. BOTÕES DE AÇÃO
-    col_btn1, col_btn2 = st.columns(2)
+            for idx, secao in enumerate(selecionados):
+                nome = agentes_secoes.NOMES_SECOES[secao]
+                progresso.progress((idx) / total, text=f"🤖 Processando {nome}...")
 
-    with col_btn1:
-        if st.button("✨ Extrair Dados Selecionados", type="primary", use_container_width=True):
-            if not api_key:
-                st.error("Sem chave API.")
-            elif not texto_input:
-                st.warning("Cole o texto do prontuário primeiro.")
-            elif not selecionados_para_ia:
-                st.warning("Selecione pelo menos um item para extrair.")
+                chave_notas = agentes_secoes._NOTAS_MAP[secao]
+                texto_secao = st.session_state.get(chave_notas, "").strip()
+
+                if not texto_secao:
+                    continue
+
+                fn = agentes_secoes._AGENTES[secao]
+                dados = fn(texto_secao, api_key, provider_completo, modelo_escolhido)
+
+                if "_erro" in dados:
+                    erros.append(f"{nome}: {dados['_erro']}")
+                else:
+                    st.session_state.update(dados)
+
+            progresso.progress(1.0, text="✅ Concluído!")
+
+            if erros:
+                for e in erros:
+                    st.warning(f"⚠️ {e}")
             else:
-                with st.spinner(f"Processando com {len(selecionados_para_ia)} agentes de IA..."):
-                    provider_completo = f"{provider} {modelo_escolhido}" if provider == "Google Gemini" else provider
-                    dados = agentes.agente_admissao(texto_input, provider_completo, api_key, escopos=selecionados_para_ia)
-                    fluxo.atualizar_dados_ia(dados)
-                    st.success("Dados extraídos com sucesso!")
-
-    with col_btn2:
-        if st.button("🧬 Preencher Seções 1–12 com IA", type="secondary", use_container_width=True):
-            if not api_key:
-                st.error("Sem chave API.")
-            elif not texto_input:
-                st.warning("Cole o texto do prontuário primeiro.")
-            else:
-                provider_completo = f"{provider} {modelo_escolhido}" if provider == "Google Gemini" else provider
-                with st.spinner("Fatiando prontuário em 12 seções..."):
-                    dados = ia_extrator.extrair_dados_prontuario(
-                        texto_bruto=texto_input,
-                        api_key=api_key,
-                        provider=provider_completo,
-                        modelo=modelo_escolhido
-                    )
-                    fluxo.atualizar_notas_ia(dados)
+                st.success(f"✅ {total} agente(s) aplicado(s) com sucesso!")
 
 # ==============================================================================
 # BLOCO 2: DADOS CLÍNICOS

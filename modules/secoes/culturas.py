@@ -21,7 +21,7 @@ def get_campos():
             f'cult_{i}_sitio': '',
             f'cult_{i}_data_coleta': '',
             f'cult_{i}_data_resultado': '',
-            f'cult_{i}_status': 'Pendente negativo', 
+            f'cult_{i}_status': None,
             f'cult_{i}_micro': '',
             f'cult_{i}_sensib': '',
             f'cult_{i}_check': False, 
@@ -67,6 +67,7 @@ def _render_linha(idx_display, id_real):
             ["Pendente negativo", "Negativo", "Positivo Aguarda Antibiograma", "Positivo com Antibiograma"], 
             key=f"cult_{id_real}_status", 
             horizontal=True,
+            index=None,
             label_visibility="collapsed"
         )
 

@@ -24,22 +24,22 @@ def get_campos():
         'sis_neuro_ecg': 15,      # GCS 3-15
         'sis_neuro_ecg_p': 15,    # ECG-P 1-15
         'sis_neuro_rass': 0,      # RASS -5 a +5
-        'sis_neuro_delirium': 'Não',
-        'sis_neuro_cam_icu': 'Negativo',
-        'sis_neuro_pupilas_tam': 'Normal',
-        'sis_neuro_pupilas_simetria': 'Simétricas',
-        'sis_neuro_pupilas_foto': 'Fotoreagente',
-        'sis_neuro_analgesico_adequado': 'Sim',
+        'sis_neuro_delirium': None,
+        'sis_neuro_cam_icu': None,
+        'sis_neuro_pupilas_tam': None,
+        'sis_neuro_pupilas_simetria': None,
+        'sis_neuro_pupilas_foto': None,
+        'sis_neuro_analgesico_adequado': None,
         'sis_neuro_deficits_focais': '',
-        'sis_neuro_analgesia_1_tipo': 'Se necessário',
+        'sis_neuro_analgesia_1_tipo': None,
         'sis_neuro_analgesia_1_drogas': '',
         'sis_neuro_analgesia_1_dose': '',
         'sis_neuro_analgesia_1_freq': '',
-        'sis_neuro_analgesia_2_tipo': 'Se necessário',
+        'sis_neuro_analgesia_2_tipo': None,
         'sis_neuro_analgesia_2_drogas': '',
         'sis_neuro_analgesia_2_dose': '',
         'sis_neuro_analgesia_2_freq': '',
-        'sis_neuro_analgesia_3_tipo': 'Se necessário',
+        'sis_neuro_analgesia_3_tipo': None,
         'sis_neuro_analgesia_3_drogas': '',
         'sis_neuro_analgesia_3_dose': '',
         'sis_neuro_analgesia_3_freq': '',
@@ -59,21 +59,21 @@ def get_campos():
     # 2. Respiratório
     campos.update({
         'sis_resp_ausculta': '',
-        'sis_resp_modo': 'Ar Ambiente',
+        'sis_resp_modo': None,
         'sis_resp_pressao': '',
         'sis_resp_volume': '',
         'sis_resp_fio2': '',
         'sis_resp_peep': '',
         'sis_resp_freq': '',
-        'sis_resp_vent_protetora': 'Sim',
-        'sis_resp_sincronico': 'Sim',
+        'sis_resp_vent_protetora': None,
+        'sis_resp_sincronico': None,
         'sis_resp_assincronia': '',
         'sis_resp_complacencia': '',
         'sis_resp_resistencia': '',
         'sis_resp_dp': '',
         'sis_resp_plato': '',
         'sis_resp_pico': '',
-        'sis_resp_disturbio_resp': 'Não',
+        'sis_resp_disturbio_resp': None,
         'sis_resp_dreno_1': '',
         'sis_resp_dreno_1_debito': '',
         'sis_resp_dreno_2': '',
@@ -87,9 +87,9 @@ def get_campos():
         'sis_cardio_fc': '',
         'sis_cardio_cardioscopia': '',
         'sis_cardio_pam': '',
-        'sis_cardio_perfusao': 'Normal',
-        'sis_cardio_fluido_responsivo': 'Não',
-        'sis_cardio_fluido_tolerante': 'Sim',
+        'sis_cardio_perfusao': None,
+        'sis_cardio_fluido_responsivo': None,
+        'sis_cardio_fluido_tolerante': None,
         'sis_cardio_dva_1_med': '',
         'sis_cardio_dva_1_dose': '',
         'sis_cardio_dva_2_med': '',
@@ -105,17 +105,17 @@ def get_campos():
         'sis_renal_diurese': '',
         'sis_renal_balanco': '',
         'sis_renal_balanco_acum': '',
-        'sis_renal_volemia': 'Euvolêmico',
+        'sis_renal_volemia': None,
         'sis_renal_cr_hoje': '',
         'sis_renal_ur_hoje': '',
         'sis_renal_cr_ontem': '',
         'sis_renal_ur_ontem': '',
-        'sis_renal_sodio': 'Normal',
-        'sis_renal_potassio': 'Normal',
-        'sis_renal_magnesio': 'Normal',
-        'sis_renal_fosforo': 'Normal',
-        'sis_renal_calcio': 'Normal',
-        'sis_renal_trs': 'Não',
+        'sis_renal_sodio': None,
+        'sis_renal_potassio': None,
+        'sis_renal_magnesio': None,
+        'sis_renal_fosforo': None,
+        'sis_renal_calcio': None,
+        'sis_renal_trs': None,
         'sis_renal_trs_via': '',
         'sis_renal_trs_ultima': '',
         'sis_renal_trs_proxima': '',
@@ -123,15 +123,15 @@ def get_campos():
 
     # 5. Infeccioso
     campos.update({
-        'sis_infec_febre': 'Não',
+        'sis_infec_febre': None,
         'sis_infec_febre_vezes': '',
         'sis_infec_febre_ultima': '',
-        'sis_infec_atb': 'Não',
+        'sis_infec_atb': None,
         'sis_infec_atb_1': '',
         'sis_infec_atb_2': '',
         'sis_infec_atb_3': '',
-        'sis_infec_atb_guiado': 'Não',
-        'sis_infec_culturas_and': 'Não',
+        'sis_infec_atb_guiado': None,
+        'sis_infec_culturas_and': None,
         'sis_infec_cult_1_sitio': '',
         'sis_infec_cult_1_data': '',
         'sis_infec_cult_2_sitio': '',
@@ -144,7 +144,7 @@ def get_campos():
         'sis_infec_pcr_ult': '',
         'sis_infec_pcr_antepen': '',
         'sis_infec_pct': '',
-        'sis_infec_isolamento': 'Não',
+        'sis_infec_isolamento': None,
         'sis_infec_isolamento_tipo': '',
         'sis_infec_isolamento_motivo': '',
         'sis_infec_patogenos': '',
@@ -159,26 +159,26 @@ def get_campos():
         'sis_gastro_dieta_parenteral': '',
         'sis_gastro_dieta_parenteral_vol': '',
         'sis_gastro_meta_calorica': '',
-        'sis_gastro_na_meta': 'Sim',
+        'sis_gastro_na_meta': None,
         'sis_gastro_ingestao_quanto': '',
-        'sis_gastro_escape_glicemico': 'Não',
+        'sis_gastro_escape_glicemico': None,
         'sis_gastro_escape_vezes': '',
         'sis_gastro_escape_manha': False,
         'sis_gastro_escape_tarde': False,
         'sis_gastro_escape_noite': False,
-        'sis_gastro_insulino': 'Não',
+        'sis_gastro_insulino': None,
         'sis_gastro_insulino_dose': '',
-        'sis_gastro_evacuacao': 'Sim',
+        'sis_gastro_evacuacao': None,
         'sis_gastro_evacuacao_data': '',
         'sis_gastro_laxativo': '',
     })
 
     # 8. Hemato
     campos.update({
-        'sis_hemato_anticoag': 'Não',
+        'sis_hemato_anticoag': None,
         'sis_hemato_anticoag_motivo': '',
-        'sis_hemato_anticoag_tipo': 'Profilática',
-        'sis_hemato_sangramento': 'Não',
+        'sis_hemato_anticoag_tipo': None,
+        'sis_hemato_sangramento': None,
         'sis_hemato_sangramento_via': '',
         'sis_hemato_sangramento_data': '',
         'sis_hemato_transf_data': '',
@@ -196,21 +196,21 @@ def get_campos():
 
     # 10. Músculo-Esquelético / Pele
     campos.update({
-        'sis_pele_lpp': 'Não',
+        'sis_pele_lpp': None,
         'sis_pele_lpp_local_1': '',
         'sis_pele_lpp_grau_1': '',
         'sis_pele_lpp_local_2': '',
         'sis_pele_lpp_grau_2': '',
         'sis_pele_lpp_local_3': '',
         'sis_pele_lpp_grau_3': '',
-        'sis_pele_polineuropatia': 'Não',
+        'sis_pele_polineuropatia': None,
     })
 
     return campos
 
 # --- FUNÇÃO DE RENDERIZAÇÃO ---
 def render():
-    st.markdown("##### 12. Evolução Detalhada por Sistemas")
+    st.markdown("##### 13. Evolução Detalhada por Sistemas")
     
     st.text_area("Notas", key="sistemas_notas", height="content", placeholder="Cole neste campo a evolução...", label_visibility="collapsed")
     st.write("")
@@ -235,35 +235,35 @@ def render():
         d1, d2 = st.columns(2)
         with d1:
             st.markdown("**Delirium**")
-            st.radio("Delirium", ["Sim", "Não"], key="sis_neuro_delirium", horizontal=True, label_visibility="collapsed")
+            st.radio("Delirium", ["Sim", "Não"], key="sis_neuro_delirium", horizontal=True, index=None, label_visibility="collapsed")
         with d2:
             st.markdown("**CAM-ICU**")
-            st.radio("CAM-ICU", ["Positivo", "Negativo"], key="sis_neuro_cam_icu", horizontal=True, label_visibility="collapsed")
+            st.radio("CAM-ICU", ["Positivo", "Negativo"], key="sis_neuro_cam_icu", horizontal=True, index=None, label_visibility="collapsed")
         
         # Linha 3: Pupilas, Simetria e Fotoreatividade lado a lado
         p1, p2, p3 = st.columns(3)
         with p1:
             st.markdown("**Pupilas**")
-            st.radio("Pupilas", ["Miótica", "Normal", "Midríase"], key="sis_neuro_pupilas_tam", horizontal=True, label_visibility="collapsed")
+            st.radio("Pupilas", ["Miótica", "Normal", "Midríase"], key="sis_neuro_pupilas_tam", horizontal=True, index=None, label_visibility="collapsed")
         with p2:
             st.markdown("**Simetria**")
-            st.radio("Simetria", ["Simétricas", "Anisocoria"], key="sis_neuro_pupilas_simetria", horizontal=True, label_visibility="collapsed")
+            st.radio("Simetria", ["Simétricas", "Anisocoria"], key="sis_neuro_pupilas_simetria", horizontal=True, index=None, label_visibility="collapsed")
         with p3:
             st.markdown("**Fotoreatividade**")
-            st.radio("Fotoreatividade", ["Fotoreagente", "Não fotoreagente"], key="sis_neuro_pupilas_foto", horizontal=True, label_visibility="collapsed")
+            st.radio("Fotoreatividade", ["Fotoreagente", "Não fotoreagente"], key="sis_neuro_pupilas_foto", horizontal=True, index=None, label_visibility="collapsed")
         
         # Linha 4: Déficits focais (acima), Controle analgésico adequado (abaixo)
         st.markdown("**Déficits focais**")
         st.text_input("Déficits focais", key="sis_neuro_deficits_focais", placeholder="Ex: Hemiparesia D, afasia...", label_visibility="collapsed")
         st.markdown("**Controle analgésico adequado**")
-        st.radio("Analgésico", ["Sim", "Não"], key="sis_neuro_analgesico_adequado", horizontal=True, label_visibility="collapsed")
+        st.radio("Analgésico", ["Sim", "Não"], key="sis_neuro_analgesico_adequado", horizontal=True, index=None, label_visibility="collapsed")
         
         # Linha 5: Analgesia - 3 conjuntos (Fixa/Se necessário + Drogas, Dose, Frequência)
         st.markdown("**Analgesia**")
         for i in range(1, 4):
             an_tipo, an1, an2, an3 = st.columns([1, 1, 1, 1])
             with an_tipo:
-                st.radio("Fixa / Se necessário", ["Fixa", "Se necessário"], key=f"sis_neuro_analgesia_{i}_tipo", horizontal=True, label_visibility="collapsed")
+                st.radio("Fixa / Se necessário", ["Fixa", "Se necessário"], key=f"sis_neuro_analgesia_{i}_tipo", horizontal=True, index=None, label_visibility="collapsed")
             with an1:
                 st.text_input("Drogas", key=f"sis_neuro_analgesia_{i}_drogas", placeholder="Drogas", label_visibility="collapsed")
             with an2:
@@ -308,7 +308,7 @@ def render():
         
         # Modo ventilatório
         st.markdown("**Modo ventilatório**")
-        st.radio("Modo", ["Ar Ambiente", "Oxigenoterapia", "VNI", "Cateter de Alto Fluxo", "Ventilação Mecânica"], key="sis_resp_modo", horizontal=True, label_visibility="collapsed")
+        st.radio("Modo", ["Ar Ambiente", "Oxigenoterapia", "VNI", "Cateter de Alto Fluxo", "Ventilação Mecânica"], key="sis_resp_modo", horizontal=True, index=None, label_visibility="collapsed")
         
         # Parâmetros
         st.markdown("**Parâmetros**")
@@ -328,10 +328,10 @@ def render():
         v1, v2, v3 = st.columns(3)
         with v1:
             st.markdown("**Ventilação protetora**")
-            st.radio("Vent protetora", ["Sim", "Não"], key="sis_resp_vent_protetora", horizontal=True, label_visibility="collapsed")
+            st.radio("Vent protetora", ["Sim", "Não"], key="sis_resp_vent_protetora", horizontal=True, index=None, label_visibility="collapsed")
         with v2:
             st.markdown("**Sincrônico**")
-            st.radio("Sincrônico", ["Sim", "Não"], key="sis_resp_sincronico", horizontal=True, label_visibility="collapsed")
+            st.radio("Sincrônico", ["Sim", "Não"], key="sis_resp_sincronico", horizontal=True, index=None, label_visibility="collapsed")
         with v3:
             st.markdown("**Assincronia**")
             st.text_input("Assincronia", key="sis_resp_assincronia", placeholder="Ex: Double trigger, esforço ineficaz...", label_visibility="collapsed")
@@ -352,7 +352,7 @@ def render():
         
         # Distúrbio respiratório (sim/não)
         st.markdown("**Distúrbio respiratório**")
-        st.radio("Distúrbio resp", ["Sim", "Não"], key="sis_resp_disturbio_resp", horizontal=True, label_visibility="collapsed")
+        st.radio("Distúrbio resp", ["Sim", "Não"], key="sis_resp_disturbio_resp", horizontal=True, index=None, label_visibility="collapsed")
         
         # Drenos: 3 pares (campo + débito)
         st.markdown("**Drenos**")
@@ -389,16 +389,16 @@ def render():
 
         # Perfusão periférica
         st.markdown("**Perfusão periférica**")
-        st.radio("Perfusão", ["Normal", "Lentificada", "Flush", "Tempo de enchimento capilar"], key="sis_cardio_perfusao", horizontal=True, label_visibility="collapsed")
+        st.radio("Perfusão", ["Normal", "Lentificada", "Flush", "Tempo de enchimento capilar"], key="sis_cardio_perfusao", horizontal=True, index=None, label_visibility="collapsed")
 
         # Fluido responsivo / Fluido tolerante
         f1, f2 = st.columns(2)
         with f1:
             st.markdown("**Fluido responsivo**")
-            st.radio("Fluido responsivo", ["Sim", "Não"], key="sis_cardio_fluido_responsivo", horizontal=True, label_visibility="collapsed")
+            st.radio("Fluido responsivo", ["Sim", "Não"], key="sis_cardio_fluido_responsivo", horizontal=True, index=None, label_visibility="collapsed")
         with f2:
             st.markdown("**Fluido tolerante**")
-            st.radio("Fluido tolerante", ["Sim", "Não"], key="sis_cardio_fluido_tolerante", horizontal=True, label_visibility="collapsed")
+            st.radio("Fluido tolerante", ["Sim", "Não"], key="sis_cardio_fluido_tolerante", horizontal=True, index=None, label_visibility="collapsed")
 
         # Drogas Vasoativas: 4 pares Medicamento / Dose
         st.markdown("**Drogas Vasoativas**")
@@ -442,7 +442,7 @@ def render():
         m1, m2 = st.columns([1, 2])
         with m1:
             st.markdown("**Ingestão na Meta**")
-            st.radio("Na meta", ["Sim", "Não"], key="sis_gastro_na_meta", horizontal=True, label_visibility="collapsed")
+            st.radio("Na meta", ["Sim", "Não"], key="sis_gastro_na_meta", horizontal=True, index=None, label_visibility="collapsed")
         with m2:
             st.markdown("**Quanto**")
             st.text_input("Quanto", key="sis_gastro_ingestao_quanto", placeholder="Ex: 1200 kcal", label_visibility="collapsed")
@@ -451,7 +451,7 @@ def render():
         st.markdown("**Escape glicêmico**")
         g1, g2, g3, g4, g5, g6, g7 = st.columns([2, 1, 1, 1, 1, 2, 1])
         with g1:
-            st.radio("Escape", ["Sim", "Não"], key="sis_gastro_escape_glicemico", horizontal=True, label_visibility="collapsed")
+            st.radio("Escape", ["Sim", "Não"], key="sis_gastro_escape_glicemico", horizontal=True, index=None, label_visibility="collapsed")
         with g2:
             st.text_input("Nº de vezes", key="sis_gastro_escape_vezes", placeholder="Nº vezes", label_visibility="collapsed")
         with g3:
@@ -462,7 +462,7 @@ def render():
             st.checkbox("Noite", key="sis_gastro_escape_noite")
         with g6:
             st.markdown("**Insulinoterapia**")
-            st.radio("Insulino", ["Sim", "Não"], key="sis_gastro_insulino", horizontal=True, label_visibility="collapsed")
+            st.radio("Insulino", ["Sim", "Não"], key="sis_gastro_insulino", horizontal=True, index=None, label_visibility="collapsed")
         with g7:
             st.markdown("**Dose**")
             st.text_input("Dose insulina", key="sis_gastro_insulino_dose", placeholder="Dose", label_visibility="collapsed")
@@ -471,7 +471,7 @@ def render():
         st.markdown("**Evacuação**")
         e1, e2, e3 = st.columns(3)
         with e1:
-            st.radio("Evacuação", ["Sim", "Não"], key="sis_gastro_evacuacao", horizontal=True, label_visibility="collapsed")
+            st.radio("Evacuação", ["Sim", "Não"], key="sis_gastro_evacuacao", horizontal=True, index=None, label_visibility="collapsed")
         with e2:
             st.text_input("Última evacuação", key="sis_gastro_evacuacao_data", placeholder="Data da última", label_visibility="collapsed")
         with e3:
@@ -501,7 +501,7 @@ def render():
 
         # Volemia
         st.markdown("**Volemia**")
-        st.radio("Volemia", ["Hipovolêmico", "Euvolêmico", "Hipervolêmico"], key="sis_renal_volemia", horizontal=True, label_visibility="collapsed")
+        st.radio("Volemia", ["Hipovolêmico", "Euvolêmico", "Hipervolêmico"], key="sis_renal_volemia", horizontal=True, index=None, label_visibility="collapsed")
 
         # Creatinina e Ureia
         st.markdown("**Função Renal**")
@@ -520,25 +520,25 @@ def render():
         e1, e2, e3, e4, e5 = st.columns(5)
         with e1:
             st.markdown("**Sódio**")
-            st.radio("Sódio", ["Normal", "Hiponatremia", "Hipernatremia"], key="sis_renal_sodio", label_visibility="collapsed")
+            st.radio("Sódio", ["Normal", "Hiponatremia", "Hipernatremia"], key="sis_renal_sodio", index=None, label_visibility="collapsed")
         with e2:
             st.markdown("**Potássio**")
-            st.radio("Potássio", ["Normal", "Hipocalemia", "Hipercalemia"], key="sis_renal_potassio", label_visibility="collapsed")
+            st.radio("Potássio", ["Normal", "Hipocalemia", "Hipercalemia"], key="sis_renal_potassio", index=None, label_visibility="collapsed")
         with e3:
             st.markdown("**Magnésio**")
-            st.radio("Magnésio", ["Normal", "Hipomagnesemia", "Hipermagnesemia"], key="sis_renal_magnesio", label_visibility="collapsed")
+            st.radio("Magnésio", ["Normal", "Hipomagnesemia", "Hipermagnesemia"], key="sis_renal_magnesio", index=None, label_visibility="collapsed")
         with e4:
             st.markdown("**Fósforo**")
-            st.radio("Fósforo", ["Normal", "Hipofosfatemia", "Hiperfosfatemia"], key="sis_renal_fosforo", label_visibility="collapsed")
+            st.radio("Fósforo", ["Normal", "Hipofosfatemia", "Hiperfosfatemia"], key="sis_renal_fosforo", index=None, label_visibility="collapsed")
         with e5:
             st.markdown("**Cálcio**")
-            st.radio("Cálcio", ["Normal", "Hipocalcemia", "Hipercalcemia"], key="sis_renal_calcio", label_visibility="collapsed")
+            st.radio("Cálcio", ["Normal", "Hipocalcemia", "Hipercalcemia"], key="sis_renal_calcio", index=None, label_visibility="collapsed")
 
         # TRS
         st.markdown("**Terapia de Substituição Renal (TRS)**")
         t1, t2, t3, t4 = st.columns(4)
         with t1:
-            st.radio("TRS", ["Sim", "Não"], key="sis_renal_trs", horizontal=True, label_visibility="collapsed")
+            st.radio("TRS", ["Sim", "Não"], key="sis_renal_trs", horizontal=True, index=None, label_visibility="collapsed")
         with t2:
             st.text_input("Via", key="sis_renal_trs_via", placeholder="Via", label_visibility="collapsed")
         with t3:
@@ -560,7 +560,7 @@ def render():
         st.markdown("**Febre nas últimas 24h**")
         f1, f2, f3 = st.columns(3)
         with f1:
-            st.radio("Febre", ["Sim", "Não"], key="sis_infec_febre", horizontal=True, label_visibility="collapsed")
+            st.radio("Febre", ["Sim", "Não"], key="sis_infec_febre", horizontal=True, index=None, label_visibility="collapsed")
         with f2:
             st.text_input("Quantas vezes", key="sis_infec_febre_vezes", placeholder="Quantas vezes", label_visibility="collapsed")
         with f3:
@@ -571,10 +571,10 @@ def render():
         a1, a2 = st.columns([1, 2])
         with a1:
             st.markdown("**Em uso**")
-            st.radio("ATB", ["Sim", "Não"], key="sis_infec_atb", horizontal=True, label_visibility="collapsed")
+            st.radio("ATB", ["Sim", "Não"], key="sis_infec_atb", horizontal=True, index=None, label_visibility="collapsed")
         with a2:
             st.markdown("**Guiado por cultura**")
-            st.radio("Guiado", ["Sim", "Não"], key="sis_infec_atb_guiado", horizontal=True, label_visibility="collapsed")
+            st.radio("Guiado", ["Sim", "Não"], key="sis_infec_atb_guiado", horizontal=True, index=None, label_visibility="collapsed")
         m1, m2, m3 = st.columns(3)
         with m1:
             st.text_input("Medicamento 1", key="sis_infec_atb_1", placeholder="Medicamento 1", label_visibility="collapsed")
@@ -585,7 +585,7 @@ def render():
 
         # Culturas em andamento
         st.markdown("**Culturas em andamento**")
-        st.radio("Culturas", ["Sim", "Não"], key="sis_infec_culturas_and", horizontal=True, label_visibility="collapsed")
+        st.radio("Culturas", ["Sim", "Não"], key="sis_infec_culturas_and", horizontal=True, index=None, label_visibility="collapsed")
         for i in range(1, 5):
             cs1, cs2 = st.columns([3, 1])
             with cs1:
@@ -609,7 +609,7 @@ def render():
         st.markdown("**Isolamento**")
         i1, i2, i3 = st.columns(3)
         with i1:
-            st.radio("Isolamento", ["Sim", "Não"], key="sis_infec_isolamento", horizontal=True, label_visibility="collapsed")
+            st.radio("Isolamento", ["Sim", "Não"], key="sis_infec_isolamento", horizontal=True, index=None, label_visibility="collapsed")
         with i2:
             st.text_input("Tipo", key="sis_infec_isolamento_tipo", placeholder="Tipo", label_visibility="collapsed")
         with i3:
@@ -633,9 +633,9 @@ def render():
         st.markdown("**Anticoagulação**")
         ac1, ac2, ac3 = st.columns(3)
         with ac1:
-            st.radio("Anticoag", ["Sim", "Não"], key="sis_hemato_anticoag", horizontal=True, label_visibility="collapsed")
+            st.radio("Anticoag", ["Sim", "Não"], key="sis_hemato_anticoag", horizontal=True, index=None, label_visibility="collapsed")
         with ac2:
-            st.radio("Tipo", ["Profilática", "Plena"], key="sis_hemato_anticoag_tipo", horizontal=True, label_visibility="collapsed")
+            st.radio("Tipo", ["Profilática", "Plena"], key="sis_hemato_anticoag_tipo", horizontal=True, index=None, label_visibility="collapsed")
         with ac3:
             st.text_input("Motivo", key="sis_hemato_anticoag_motivo", placeholder="Motivo", label_visibility="collapsed")
 
@@ -643,7 +643,7 @@ def render():
         st.markdown("**Sangramento**")
         s1, s2, s3 = st.columns(3)
         with s1:
-            st.radio("Sangramento", ["Sim", "Não"], key="sis_hemato_sangramento", horizontal=True, label_visibility="collapsed")
+            st.radio("Sangramento", ["Sim", "Não"], key="sis_hemato_sangramento", horizontal=True, index=None, label_visibility="collapsed")
         with s2:
             st.text_input("Via", key="sis_hemato_sangramento_via", placeholder="Via", label_visibility="collapsed")
         with s3:
@@ -685,7 +685,7 @@ def render():
         st.markdown("**Lesão por Pressão**")
         lpp_cols = st.columns([1, 2, 1])
         with lpp_cols[0]:
-            st.radio("LPP", ["Sim", "Não"], key="sis_pele_lpp", horizontal=True, label_visibility="collapsed")
+            st.radio("LPP", ["Sim", "Não"], key="sis_pele_lpp", horizontal=True, index=None, label_visibility="collapsed")
         for i in range(1, 4):
             l1, l2 = st.columns([3, 1])
             with l1:
@@ -695,7 +695,7 @@ def render():
 
         # Polineuropatia
         st.markdown("**Polineuropatia**")
-        st.radio("Polineuropatia", ["Sim", "Não"], key="sis_pele_polineuropatia", horizontal=True, label_visibility="collapsed")
+        st.radio("Polineuropatia", ["Sim", "Não"], key="sis_pele_polineuropatia", horizontal=True, index=None, label_visibility="collapsed")
 
         # Demais e Conduta
         st.markdown("**Demais músculo-esquelético / pele**")

@@ -29,7 +29,7 @@ def get_campos():
             f'lab_{i}_ur_hm': '', f'lab_{i}_ur_prot': '', f'lab_{i}_ur_cet': '', f'lab_{i}_ur_glic': '',
             
             # Linha 6: Gasometria
-            f'lab_{i}_gas_tipo': 'Arterial', 
+            f'lab_{i}_gas_tipo': None,
             f'lab_{i}_gas_ph': '', f'lab_{i}_gas_pco2': '', f'lab_{i}_gas_po2': '', f'lab_{i}_gas_hco3': '',
             f'lab_{i}_gas_be': '', f'lab_{i}_gas_sat': '', f'lab_{i}_gas_lac': '', f'lab_{i}_gas_ag': '',
             f'lab_{i}_gas_cl': '', f'lab_{i}_gas_na': '', f'lab_{i}_gas_k': '', f'lab_{i}_gas_cai': '',
@@ -109,7 +109,7 @@ def _render_slot(i):
         # LINHA 6: Gasometria
         st.caption("Gasometria")
         # Botão inline
-        st.radio(f"Gaso #{i}", ["Arterial", "Venosa"], key=f'lab_{i}_gas_tipo', horizontal=True, label_visibility="collapsed")
+        st.radio(f"Gaso #{i}", ["Arterial", "Venosa"], key=f'lab_{i}_gas_tipo', horizontal=True, index=None, label_visibility="collapsed")
         
         g1 = st.columns(6)
         with g1[0]: st.text_input("pH", key=f'lab_{i}_gas_ph')

@@ -14,7 +14,8 @@ from modules.secoes import complementares     # 9
 from modules.secoes import laboratoriais      # 10
 from modules.secoes import evolucao_clinica   # 11
 from modules.secoes import sistemas           # 12
-from modules.secoes import condutas           # 13
+from modules.secoes import controles          # 13
+from modules.secoes import condutas           # 14
 
 def inicializar_estado():
     campos = {}
@@ -32,6 +33,7 @@ def inicializar_estado():
     campos.update(laboratoriais.get_campos())
     campos.update(evolucao_clinica.get_campos())
     campos.update(sistemas.get_campos())
+    campos.update(controles.get_campos())
     campos.update(condutas.get_campos())
     
     campos.update({'texto_final_gerado': ''})
@@ -164,6 +166,8 @@ def render_formulario_completo():
     # ==========================================
     with st.expander("Evolução Diária", expanded=True):
         laboratoriais.render()      
+        st.write("")
+        controles.render()
         st.write("")
         evolucao_clinica.render()   
         st.write("")

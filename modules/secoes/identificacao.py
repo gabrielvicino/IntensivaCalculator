@@ -5,7 +5,7 @@ def get_campos():
     return {
         'identificacao_notas': '',
         # Identidade
-        'nome': '', 'idade': 0, 'sexo': 'Masculino', 'prontuario': '', 'leito': '', 'origem': '', 'equipe': '',
+        'nome': '', 'idade': 0, 'sexo': '', 'prontuario': '', 'leito': '', 'origem': '', 'equipe': '',
         'di_hosp': '', 'di_uti': '', 'di_enf': '',
         # Scores
         'saps3': '', 'sofa_adm': 0, 'sofa_atual': 0, 
@@ -34,7 +34,7 @@ def render():
         c1.markdown("**Idade**")
         c1.number_input("Idade", min_value=0, key="idade", label_visibility="collapsed")
         c2.markdown("**Sexo**")
-        c2.selectbox("Sexo", ["Masculino", "Feminino"], key="sexo", label_visibility="collapsed")
+        c2.selectbox("Sexo", ["", "Masculino", "Feminino"], key="sexo", label_visibility="collapsed")
         c3.markdown("**Origem**")
         c3.text_input("Origem", key="origem", placeholder="Ex: PS/CC", label_visibility="collapsed")
         c4.markdown("**Equipe Responsável**")

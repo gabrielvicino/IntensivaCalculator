@@ -1,19 +1,30 @@
 import streamlit as st
 
-# 1. Definição das Variáveis
 def get_campos():
     return {
-        'hmpa_texto': ''
+        'hmpa_texto':     '',
+        'hmpa_reescrito': ''
     }
 
-# 2. Renderização Visual
 def render():
     st.markdown("##### 5. História da Moléstia Pregressa Atual")
-    
+
     with st.container(border=True):
+        st.caption("Texto extraído do prontuário")
         st.text_area(
-            "História da Moléstia Pregressa e Atual",
+            "hmpa_texto_label",
             key="hmpa_texto",
             height=120,
-            placeholder="Exemplo: Paciente deu entrada no PS com quadro de dispneia há 3 dias..."
+            placeholder="Texto fatiado pela IA (ou cole manualmente)...",
+            label_visibility="collapsed"
+        )
+
+    with st.container(border=True):
+        st.caption("Texto reescrito pelo agente")
+        st.text_area(
+            "hmpa_reescrito_label",
+            key="hmpa_reescrito",
+            height=120,
+            placeholder="A IA irá reescrever a HMA/HMP aqui após aplicar o agente...",
+            label_visibility="collapsed"
         )

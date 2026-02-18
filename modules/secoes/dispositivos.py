@@ -22,7 +22,7 @@ def get_campos():
             f'disp_{i}_local': '',
             f'disp_{i}_data_insercao': '',
             f'disp_{i}_data_retirada': '',
-            f'disp_{i}_status': 'Ativo',
+            f'disp_{i}_status': None,
             f'disp_{i}_conduta': ''
         })
     return campos
@@ -62,6 +62,7 @@ def _render_linha(idx_display, id_real):
             ["Ativo", "Removido"],
             key=f"disp_{id_real}_status",
             horizontal=True,
+            index=None,
             label_visibility="collapsed"
         )
         with st.success("Conduta"):

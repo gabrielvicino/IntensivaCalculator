@@ -1,59 +1,123 @@
 import streamlit as st
 
-def gerar_texto_final():
+
+def _get(key, default=""):
+    """Lê do session_state de forma segura."""
+    return st.session_state.get(key, default)
+
+
+def _secao_identificacao() -> list[str]:
     """
-    Lê os dados do st.session_state e monta o texto final do prontuário.
-    Retorna uma string formatada.
+    Gera as linhas da seção '# Identificação & Scores'.
+    Regra geral: campo vazio → linha não aparece.
+    O cabeçalho só aparece se ao menos uma linha de conteúdo for gerada.
     """
-    linhas = []
+    corpo = []
 
-    # --- 1. Identidade ---
-    l1 = f"Nome: {st.session_state.get('nome', '')}"
-    if st.session_state.get('idade'): l1 += f", {st.session_state['idade']} anos"
-    if st.session_state.get('sexo'): l1 += f", {st.session_state['sexo']}"
-    if st.session_state.get('origem'): l1 += f", {st.session_state['origem']}"
-    if st.session_state.get('leito'): l1 += f" - {st.session_state['leito']}"
-    linhas.append(l1)
+    # 1. Nome + Idade
+    nome = _get("nome")
+    idade = _get("idade", 0)
+    if nome:
+        linha = f"Nome: {nome}"
+        if idade:
+            linha += f", {idade} anos"
+        corpo.append(linha)
 
-    # --- 2. Datas ---
-    if st.session_state.get('di_hosp'): linhas.append(f"DIH: {st.session_state['di_hosp']}")
-    if st.session_state.get('di_enf'): linhas.append(f"DI-ENF: {st.session_state['di_enf']}")
-    if st.session_state.get('di_uti'): linhas.append(f"DI-UTI: {st.session_state['di_uti']}")
+    # 2. Sexo
+    sexo = _get("sexo")
+    if sexo:
+        corpo.append(f"Sexo: {sexo}")
 
-    # --- 3. Equipe ---
-    if st.session_state.get('equipe'): linhas.append(f"Equipe Responsável: {st.session_state['equipe']}")
+    # 3. Prontuário + Leito
+    prontuario = _get("prontuario")
+    leito = _get("leito")
+    if prontuario or leito:
+        partes = []
+        if prontuario:
+            partes.append(f"HC: {prontuario}")
+        if leito:
+            partes.append(f"Leito: {leito}")
+        corpo.append(" / ".join(partes))
 
-    # --- 4. SAPS ---
-    if st.session_state.get('saps3'): linhas.append(f"SAPS-3: {st.session_state['saps3']}")
+    # 4. Origem
+    origem = _get("origem")
+    if origem:
+        corpo.append(f"Origem: {origem}")
 
-    # --- 5. SOFA ---
-    linha_sofa = []
-    sofa_atual = int(st.session_state.get('sofa_atual') or 0)
-    sofa_adm = int(st.session_state.get('sofa_adm') or 0)
+    # 5. Equipe
+    equipe = _get("equipe")
+    if equipe:
+        corpo.append(f"Equipe responsável: {equipe}")
 
-    if sofa_atual: linha_sofa.append(f"SOFA Atual: {sofa_atual}")
-    if sofa_adm: linha_sofa.append(f"Sofa Adm: {sofa_adm}")
+    # 6. Data internação hospitalar
+    di_hosp = _get("di_hosp")
+    if di_hosp:
+        corpo.append(f"Data de internação hospitalar: {di_hosp}")
 
-    if sofa_adm > 0:
-        delta = sofa_atual - sofa_adm
-        sinal = "+" if delta > 0 else ""
-        linha_sofa.append(f"Delta SOFA: {sinal}{delta}")
+    # 7. Data entrada UTI
+    di_uti = _get("di_uti")
+    if di_uti:
+        corpo.append(f"Data de entrada na UTI: {di_uti}")
 
-    if linha_sofa: linhas.append(" | ".join(linha_sofa))
+    # 8. Data entrada enfermaria — só aparece se preenchida
+    di_enf = _get("di_enf")
+    if di_enf:
+        corpo.append(f"Data de entrada em enfermaria: {di_enf}")
 
-    # --- 6. Funcionalidade ---
-    linha_func = []
-    if st.session_state.get('mrs'): linha_func.append(f"mRs: {st.session_state['mrs']}")
-    if st.session_state.get('cfs'): linha_func.append(f"CFS: {st.session_state['cfs']}")
-    if st.session_state.get('pps'): linha_func.append(f"PPS: {st.session_state['pps']}")
-    if linha_func: linhas.append(" ".join(linha_func))
+    # 9. SAPS 3
+    saps3 = _get("saps3")
+    if saps3:
+        corpo.append(f"SAPS 3: {saps3}")
 
-    # --- 7. Diagnósticos ---
-    if st.session_state.get('hd_principal'):
-        linhas.append(f"HD: {st.session_state['hd_principal']} ({st.session_state.get('hd_status', '')})")
+    # 10. SOFA admissão
+    sofa_adm = _get("sofa_adm", 0)
+    try:
+        sofa_adm = int(sofa_adm)
+    except (ValueError, TypeError):
+        sofa_adm = 0
+    if sofa_adm:
+        corpo.append(f"SOFA admissão: {sofa_adm}")
 
-    # --- 8. Paliativo ---
-    if st.session_state.get('paliativo'): linhas.append("[Priorizar medidas para conforto]")
+    # 11. PPS
+    pps = _get("pps")
+    if pps:
+        corpo.append(f"PPS: {pps}")
 
-    # Montagem Final
-    return "# Identidade\n" + "\n".join(linhas)
+    # 12. mRS prévio
+    mrs = _get("mrs")
+    if mrs:
+        corpo.append(f"mRS prévio: {mrs}")
+
+    # 13. CFS
+    cfs = _get("cfs")
+    if cfs:
+        corpo.append(f"CFS: {cfs}")
+
+    # 14. Paliativo — somente se True, em caixa alta, sem prefixo
+    if _get("paliativo", False):
+        corpo.append("")
+        corpo.append("PACIENTE EM CUIDADOS PROPORCIONAIS")
+
+    # Cabeçalho só aparece se houver conteúdo
+    if not corpo:
+        return []
+    return ["# Identificação & Scores", ""] + corpo
+
+
+def gerar_texto_final() -> str:
+    """
+    Monta o texto final do prontuário concatenando todas as seções.
+    Cada seção retorna uma lista de linhas; seções vazias são ignoradas.
+    """
+    secoes = []
+
+    secoes.append(_secao_identificacao())
+
+    # Futuras seções serão adicionadas aqui:
+    # secoes.append(_secao_diagnosticos())
+    # secoes.append(_secao_comorbidades())
+    # ...
+
+    # Junta todas as seções com linha em branco entre elas
+    blocos = ["\n".join(s) for s in secoes if s]
+    return "\n\n".join(blocos)

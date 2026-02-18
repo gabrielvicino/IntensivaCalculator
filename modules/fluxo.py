@@ -12,6 +12,7 @@ _MAPA_NOTAS = {
     "antibioticos":  "antibioticos_notas",
     "complementares":"complementares_notas",
     "laboratoriais": "laboratoriais_notas",
+    "controles":     "controles_notas",
     "evolucao":      "evolucao_notas",
     "sistemas":      "sistemas_notas",
     "conduta":       "conduta_final_lista",

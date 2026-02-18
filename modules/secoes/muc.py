@@ -5,7 +5,7 @@ def get_campos():
     campos = {
         'muc_notas': '',
         # Campo Único Global de Adesão
-        'muc_adesao_global': 'Uso Regular'
+        'muc_adesao_global': None
     }
     
     # 10 Slots para medicamentos (sem o campo 'uso' individual)
@@ -88,6 +88,7 @@ def render():
             ["Uso Regular", "Uso Irregular", "Desconhecido"],
             key="muc_adesao_global",
             horizontal=True,
+            index=None,
             label_visibility="collapsed"
         )
     

@@ -33,7 +33,7 @@ def get_campos():
     for i in range(1, 6):
         campos.update({
             f'atb_curr_{i}_nome': '',
-            f'atb_curr_{i}_tipo': 'Empírico', # Padrão
+            f'atb_curr_{i}_tipo': None,
             f'atb_curr_{i}_data_ini': '',
             f'atb_curr_{i}_data_fim': '',     # Término Previsto
             f'atb_curr_{i}_conduta': ''
@@ -43,7 +43,7 @@ def get_campos():
     for i in range(1, 6):
         campos.update({
             f'atb_prev_{i}_nome': '',
-            f'atb_prev_{i}_tipo': 'Empírico',
+            f'atb_prev_{i}_tipo': None,
             f'atb_prev_{i}_data_ini': '',
             f'atb_prev_{i}_data_fim': '',     # Término Real
             f'atb_prev_{i}_obs': '',          # Observação
@@ -82,6 +82,7 @@ def _render_atual(idx_display, id_real):
                 ["Empírico", "Guiado"], 
                 key=f"atb_curr_{id_real}_tipo", 
                 horizontal=True,
+                index=None,
                 label_visibility="collapsed"
             )
             
@@ -130,6 +131,7 @@ def _render_previo(idx_display, id_real):
                 ["Empírico", "Guiado"], 
                 key=f"atb_prev_{id_real}_tipo", 
                 horizontal=True,
+                index=None,
                 label_visibility="collapsed"
             )
 
