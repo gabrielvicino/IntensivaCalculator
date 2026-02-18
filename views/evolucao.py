@@ -30,30 +30,7 @@ GOOGLE_API_KEY  = _carregar_chave("GOOGLE_API_KEY",  "GOOGLE_API_KEY")
 # ==============================================================================
 # MODELOS DISPONÍVEIS
 # ==============================================================================
-MODELOS_OPENAI = ["gpt-4o", "gpt-4o-mini"]
-MODELOS_GEMINI = [
-    "gemini-2.5-flash",
-    "gemini-2.5-pro",
-    "gemini-2.5-flash-thinking",
-    "gemini-2.0-flash",
-    "gemini-1.5-pro-002",
-    "gemini-1.5-flash-002",
-]
-
-def verificar_modelos_ativos(api_key):
-    """Testa quais modelos Gemini estão ativos para a chave fornecida."""
-    validos = []
-    genai.configure(api_key=api_key)
-    msg = st.empty()
-    for m in MODELOS_GEMINI:
-        msg.text(f"Testando: {m}...")
-        try:
-            genai.GenerativeModel(m).generate_content("Oi")
-            validos.append(m)
-        except Exception:
-            pass
-    msg.empty()
-    return validos or MODELOS_GEMINI
+MODELOS_GEMINI = ["gemini-2.5-flash", "gemini-2.5-pro"]
 
 # ==============================================================================
 # SETUP
@@ -61,60 +38,33 @@ def verificar_modelos_ativos(api_key):
 ui.carregar_css()
 fichas.inicializar_estado()
 
-if "evolucao_lista_gemini" not in st.session_state:
-    st.session_state.evolucao_lista_gemini = MODELOS_GEMINI
-
 # ==============================================================================
 # SIDEBAR
 # ==============================================================================
 with st.sidebar:
-    st.header("⚙️ Configuração de IA")
+    st.header("Configurações")
 
-    provider = st.radio("Provedor:", ["OpenAI GPT", "Google Gemini"], index=0)
+    provider = st.radio("IA:", ["OpenAI GPT", "Google Gemini"], index=0)
 
     if provider == "OpenAI GPT":
-        modelo_escolhido = st.selectbox("Modelo:", MODELOS_OPENAI, index=0)
-
-        # Chave carregada automaticamente; permite sobrescrever se necessário
-        chave_input = st.text_input(
-            "OpenAI API Key",
-            value=OPENAI_API_KEY,
-            type="password",
-            help="Pré-carregada do arquivo de configuração. Altere aqui se necessário."
-        )
-        api_key = chave_input or OPENAI_API_KEY
-
+        api_key      = OPENAI_API_KEY
+        modelo_escolhido = "gpt-4o"
+        st.success("IA: OpenAI - GPT-4o")
         if api_key and len(api_key) > 10:
-            st.success(f"✅ OpenAI: ...{api_key[-6:]}")
+            st.success(f"✅ API Key: ...{api_key[-8:]}")
         else:
-            st.error("❌ API Key OpenAI não carregada")
+            st.error("❌ API Key não carregada!")
 
     else:  # Google Gemini
-        # Chave carregada automaticamente
-        chave_input = st.text_input(
-            "Google API Key",
-            value=GOOGLE_API_KEY,
-            type="password",
-            help="Pré-carregada do arquivo de configuração. Altere aqui se necessário."
-        )
-        api_key = chave_input or GOOGLE_API_KEY
-
+        api_key = GOOGLE_API_KEY
         if api_key:
             genai.configure(api_key=api_key)
-
-        if st.button("🔄 Verificar Modelos"):
-            if api_key:
-                st.session_state.evolucao_lista_gemini = verificar_modelos_ativos(api_key)
-                st.success(f"✅ {len(st.session_state.evolucao_lista_gemini)} modelos ativos")
-            else:
-                st.warning("Configure a API Key primeiro")
-
-        modelo_escolhido = st.selectbox("Modelo:", st.session_state.evolucao_lista_gemini, index=0)
-
+        modelo_escolhido = st.selectbox("Modelo:", MODELOS_GEMINI, index=0)
+        st.success(f"IA: Google - {modelo_escolhido}")
         if api_key and len(api_key) > 10:
-            st.success(f"✅ Google: ...{api_key[-6:]}")
+            st.success(f"✅ API Key: ...{api_key[-8:]}")
         else:
-            st.error("❌ API Key Google não carregada")
+            st.error("❌ API Key não carregada!")
 
 # ==============================================================================
 # TÍTULO E BUSCA
