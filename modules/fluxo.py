@@ -1,5 +1,44 @@
 import streamlit as st
 
+# Mapeamento: chave do JSON retornado pela IA → chave do session_state
+_MAPA_NOTAS = {
+    "identificacao": "identificacao_notas",
+    "hd":            "hd_notas",
+    "comorbidades":  "comorbidades_notas",
+    "muc":           "muc_notas",
+    "hmpa":          "hmpa_texto",
+    "dispositivos":  "dispositivos_notas",
+    "culturas":      "culturas_notas",
+    "antibioticos":  "antibioticos_notas",
+    "complementares":"complementares_notas",
+    "laboratoriais": "laboratoriais_notas",
+    "evolucao":      "evolucao_notas",
+    "sistemas":      "sistemas_notas",
+    "conduta":       "conduta_final_lista",
+}
+
+def atualizar_notas_ia(dados: dict):
+    """Recebe o JSON do ia_extrator e preenche os campos _notas de cada seção."""
+    if not dados:
+        return
+
+    erro = dados.get("_erro")
+    if erro:
+        st.error(f"Erro na extração: {erro}")
+        return
+
+    preenchidos = 0
+    for chave_json, chave_estado in _MAPA_NOTAS.items():
+        valor = dados.get(chave_json, "")
+        if valor and valor.strip():
+            st.session_state[chave_estado] = valor.strip()
+            preenchidos += 1
+
+    if preenchidos:
+        st.toast(f"✅ {preenchidos} seções preenchidas com sucesso!", icon="🧬")
+    else:
+        st.warning("A IA não encontrou dados para preencher. Verifique o texto colado.")
+
 def limpar_tudo():
     """Reseta todos os campos do formulário para o estado inicial."""
     keys_texto = [
