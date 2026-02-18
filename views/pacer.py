@@ -1387,63 +1387,55 @@ if "lista_modelos_validos" not in st.session_state:
 
 st.header("📃 Pacer - Exames & Prescrição")
 
-# CONFIGURAÇÃO FIXA: OpenAI GPT-4o
-# Carrega chave do arquivo .env (local) ou Streamlit Secrets (cloud)
+# Carrega chaves do .env (local) ou Streamlit Secrets (cloud)
 import os
 from pathlib import Path
 
-# Tenta carregar do .env usando python-dotenv (para desenvolvimento local)
 try:
     from dotenv import load_dotenv
-    # Busca arquivo .env no diretório raiz do projeto
-    env_path = Path(__file__).parent.parent / ".env"
-    load_dotenv(dotenv_path=env_path)
+    load_dotenv(dotenv_path=Path(__file__).parent.parent / ".env")
 except ImportError:
-    pass  # python-dotenv não instalado, continua sem ele
-
-# Lê a chave da variável de ambiente (.env) ou Streamlit Secrets
-OPENAI_API_KEY = ""
-
-# Prioridade 1: Streamlit Secrets (para Streamlit Cloud)
-try:
-    if hasattr(st, 'secrets') and "OPENAI_API_KEY" in st.secrets:
-        OPENAI_API_KEY = st.secrets["OPENAI_API_KEY"]
-except Exception:
     pass
 
-# Prioridade 2: Variável de ambiente (para local com .env)
-if not OPENAI_API_KEY:
-    OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
+def _carregar_chave_pacer(nome_secret: str, nome_env: str) -> str:
+    try:
+        if hasattr(st, "secrets") and nome_secret in st.secrets:
+            return st.secrets[nome_secret]
+    except Exception:
+        pass
+    return os.getenv(nome_env, "")
 
-# IMPORTANTE: Configure sua chave
-# LOCAL: Crie arquivo .env com OPENAI_API_KEY=sua-chave
-# CLOUD: Configure em Settings > Secrets no Streamlit Cloud
-if not OPENAI_API_KEY:
-    st.error(
-        "❌ **API Key não configurada!**\n\n"
-        "**Para uso local:** Crie um arquivo `.env` na raiz do projeto com:\n"
-        "```\n"
-        "OPENAI_API_KEY=sua-chave-openai-aqui\n"
-        "```\n\n"
-        "**Para Streamlit Cloud:** Configure em `Settings > Secrets`:\n"
-        "```toml\n"
-        "OPENAI_API_KEY = \"sua-chave-aqui\"\n"
-        "```"
-    )
-    st.stop()
+OPENAI_API_KEY = _carregar_chave_pacer("OPENAI_API_KEY", "OPENAI_API_KEY")
+GOOGLE_API_KEY = _carregar_chave_pacer("GOOGLE_API_KEY", "GOOGLE_API_KEY")
 
-motor_escolhido = "OpenAI GPT"
-modelo_escolhido = "gpt-4o"  # GPT-4o para TUDO (máxima precisão)
+MODELOS_GEMINI_PACER = ["gemini-2.5-flash", "gemini-2.5-pro"]
 
 with st.sidebar:
     st.header("Configurações")
-    st.success("IA: OpenAI - GPT-4o")
-    
-    # Debug: mostra se API key foi carregada
-    if OPENAI_API_KEY and len(OPENAI_API_KEY) > 10:
-        st.success(f"✅ API Key: ...{OPENAI_API_KEY[-8:]}")
-    else:
-        st.error("❌ API Key não carregada!")
+
+    provider = st.radio("IA:", ["OpenAI GPT", "Google Gemini"], index=0)
+
+    if provider == "OpenAI GPT":
+        motor_escolhido  = "OpenAI GPT"
+        modelo_escolhido = "gpt-4o"
+        api_key          = OPENAI_API_KEY
+        st.success("IA: OpenAI - GPT-4o")
+        if api_key and len(api_key) > 10:
+            st.success(f"✅ API Key: ...{api_key[-8:]}")
+        else:
+            st.error("❌ API Key não carregada!")
+
+    else:  # Google Gemini
+        motor_escolhido  = "Google Gemini"
+        api_key          = GOOGLE_API_KEY
+        if api_key:
+            genai.configure(api_key=api_key)
+        modelo_escolhido = st.selectbox("Modelo:", MODELOS_GEMINI_PACER, index=0)
+        st.success(f"IA: Google - {modelo_escolhido}")
+        if api_key and len(api_key) > 10:
+            st.success(f"✅ API Key: ...{api_key[-8:]}")
+        else:
+            st.error("❌ API Key não carregada!")
 
 # Função de renderização principal
 def render_interface_colunas(titulo, key_input, key_output, prompt_atual, usar_markdown=True):
@@ -1464,7 +1456,7 @@ def render_interface_colunas(titulo, key_input, key_output, prompt_atual, usar_m
             with st.spinner("Processando..."):
                 resultado = processar_texto(
                     motor_escolhido,
-                    OPENAI_API_KEY,
+                    api_key,
                     modelo_escolhido,
                     prompt_atual,
                     input_val
@@ -1526,8 +1518,8 @@ with tab1:
                 # GPT-4o para TUDO (máxima precisão, paralelização mantém velocidade)
                 resultado_exames, analise_clinica = processar_multi_agente(
                     motor_escolhido,
-                    OPENAI_API_KEY,
-                    modelo_escolhido,  # GPT-4o para máxima precisão
+                    api_key,
+                    modelo_escolhido,
                     agentes_ativos,  # TODOS OS AGENTES SEMPRE
                     input_val,
                     executar_analise=st.session_state.usar_analise
@@ -1602,7 +1594,7 @@ with tab2:
                 # USA A NOVA FUNÇÃO MULTI-AGENTE COM 3 AGENTES
                 resultado_prescricao = processar_multi_agente_prescricao(
                     motor_escolhido,
-                    OPENAI_API_KEY,
+                    api_key,
                     modelo_escolhido,
                     input_val
                 )
