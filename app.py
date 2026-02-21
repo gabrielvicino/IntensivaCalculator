@@ -71,9 +71,9 @@ def verificar_autenticacao():
     
     return False
 
-# Verifica autenticação antes de carregar a aplicação
-if not verificar_autenticacao():
-    st.stop()  # Para a execução se não estiver autenticado
+# Autenticação suspensa temporariamente durante desenvolvimento
+# if not verificar_autenticacao():
+#     st.stop()
 
 # ==============================================================================
 # SISTEMA DE NAVEGAÇÃO (ROUTER)
