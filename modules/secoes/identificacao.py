@@ -6,7 +6,7 @@ def get_campos():
         'identificacao_notas': '',
         # Identidade
         'departamento': '',
-        'nome': '', 'idade': 0, 'sexo': '', 'prontuario': '', 'leito': '', 'origem': '', 'equipe': '',
+        'nome': '', 'idade': 0, 'sexo': '', 'prontuario': '', 'leito': '', 'origem': '', 'equipe': '', 'interconsultora': '',
         'di_hosp': '', 'di_uti': '', 'di_enf': '',
         # Scores
         'saps3': '', 'sofa_adm': 0, 'sofa_atual': 0, 
@@ -38,15 +38,17 @@ def render(_agent_btn_callback=None):
         c_pront.markdown("**Prontuário**")
         c_pront.text_input("Prontuário", value=st.session_state.get('prontuario', ''), disabled=True, label_visibility="collapsed")
         
-        c1, c2, c3, c4 = st.columns([1, 1.2, 1.5, 2])
+        c1, c2, c3, c4, c5 = st.columns([1, 1.2, 1.5, 1.5, 1.5])
         c1.markdown("**Idade**")
         c1.number_input("Idade", min_value=0, key="idade", label_visibility="collapsed")
         c2.markdown("**Sexo**")
         c2.selectbox("Sexo", ["", "Masculino", "Feminino"], key="sexo", label_visibility="collapsed")
         c3.markdown("**Origem**")
         c3.text_input("Origem", key="origem", placeholder="Ex: PS/CC", label_visibility="collapsed")
-        c4.markdown("**Equipe Responsável**")
-        c4.text_input("Equipe Responsável", key="equipe", label_visibility="collapsed")
+        c4.markdown("**Equipe Titular**")
+        c4.text_input("Equipe Titular", key="equipe", label_visibility="collapsed")
+        c5.markdown("**Interconsultora**")
+        c5.text_input("Interconsultora", key="interconsultora", placeholder="Ex: Cardiologia", label_visibility="collapsed")
         
         st.write("") 
         

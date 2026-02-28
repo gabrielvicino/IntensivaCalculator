@@ -4,7 +4,10 @@ import os
 from pathlib import Path
 
 # Importa os módulos
+from datetime import date
 from modules import ui, fichas, gerador, fluxo, ia_extrator, agentes_secoes, extrator_exames
+from modules.parser_lab import parse_lab_deterministico
+from modules.parser_controles import parse_controles_deterministico
 from utils import load_data, save_evolucao, load_evolucao, check_evolucao_exists, mostrar_rodape
 
 # ==============================================================================
@@ -351,6 +354,44 @@ if _agente_pendente:
     else:
         _aplicar_agentes_paralelo([_agente_pendente])
 
+# ── Parsing Controles (determinístico, sem IA) ──────────────────────────────
+_ctrl_det = st.session_state.pop("_ctrl_deterministico_pendente", False)
+if _ctrl_det:
+    texto_ctrl = st.session_state.get("controles_notas", "").strip()
+    if not texto_ctrl:
+        st.warning("Cole os controles no campo de notas do Bloco 11 primeiro.")
+    else:
+        dados = parse_controles_deterministico(texto_ctrl, data_hoje=date.today())
+        if dados:
+            staging = st.session_state.get("_agent_staging", {})
+            for k, v in dados.items():
+                if v is not None and str(v).strip() != "":
+                    staging[k] = v
+            st.session_state["_agent_staging"] = staging
+            st.toast(f"✅ {len(dados)} campos de controles preenchidos.", icon="📊")
+            st.rerun()
+        else:
+            st.warning("⚠️ Nenhum controle no formato esperado. Use: # Controles - 24 horas, > DD/MM/YYYY, PAS: min - max...")
+
+# ── Preencher Determinístico Lab (parser sem IA) ─────────────────────────────
+_lab_det = st.session_state.pop("_lab_deterministico_pendente", False)
+if _lab_det:
+    texto_lab = st.session_state.get("laboratoriais_notas", "").strip()
+    if not texto_lab:
+        st.warning("Cole os exames no campo de notas do Bloco 10 primeiro.")
+    else:
+        dados = parse_lab_deterministico(texto_lab, data_hoje=date.today())
+        if dados:
+            staging = st.session_state.get("_agent_staging", {})
+            for k, v in dados.items():
+                if v is not None and str(v).strip() != "":
+                    staging[k] = v
+            st.session_state["_agent_staging"] = staging
+            st.toast(f"✅ {len(dados)} campos preenchidos (determinístico).", icon="🧪")
+            st.rerun()
+        else:
+            st.warning("⚠️ Nenhum exame no formato esperado. Use: DD/MM/YYYY – Hb x | Ht x | ...")
+
 # ── Extrair Exames (PACER) + Agente Lab automático ─────────────────────────
 _lab_extrair = st.session_state.pop("_lab_extrair_pendente", False)
 if _lab_extrair and api_key:
@@ -408,12 +449,33 @@ if st.session_state.pop("_completar_blocos_sistemas", False):
             return s.split("(")[1].split(")")[0].strip()
         return _limpar(s)
 
+    def _parse_num(s):
+        """Converte string para float (aceita vírgula como decimal). Retorna None se inválido."""
+        if not s:
+            return None
+        s = _limpar(str(s)).replace(",", ".")
+        try:
+            return float(s)
+        except ValueError:
+            return None
+
+    def _eletrolito_status(val, lim_hipo, lim_hiper):
+        """Retorna 'Hipo*', 'Normal' ou 'Hiper*' conforme valor e limites."""
+        if val is None:
+            return None
+        if val < lim_hipo:
+            return "hipo"
+        if val > lim_hiper:
+            return "hiper"
+        return "normal"
+
     staging = st.session_state.get("_agent_staging", {})
     _cnt = [0]
 
     def _set(sis_key, val):
-        # Só preenche se a origem tem valor E o destino está vazio (preserva dados manuais)
-        if val and not str(st.session_state.get(sis_key, "") or "").strip():
+        # REGRA: Nunca sobrescrever — só preenche se o destino está vazio (preserva dados manuais)
+        dest = st.session_state.get(sis_key, "") or ""
+        if val and not str(dest).strip():
             staging[sis_key] = val
             _cnt[0] += 1
 
@@ -426,9 +488,32 @@ if st.session_state.pop("_completar_blocos_sistemas", False):
         _set(f"sis_renal_cr_{sis_suf}", _limpar(st.session_state.get(f"lab_{lab_idx}_cr", "")))
         _set(f"sis_renal_ur_{sis_suf}", _limpar(st.session_state.get(f"lab_{lab_idx}_ur", "")))
 
-    # 3. Antibióticos atuais → Infeccioso (nomes 1, 2, 3)
+    # 2b. Laboratoriais (hoje) → Renal: pills de eletrólitos (Na, K, Mg, Fos, CaI)
+    # Na <135 hipo, >145 hiper | K <3.5 hipo, >5 hiper | Mg <1.5 hipo, >2.2 hiper
+    # Fos <2.0 hipo, >4.5 hiper | CaI <1.1 hipo, >1.3 hiper
+    _MAP_ELETROLITO = {
+        ("sis_renal_sodio", "lab_1_na", 135, 145): ("Hiponatremia", "Normal", "Hipernatremia"),
+        ("sis_renal_potassio", "lab_1_k", 3.5, 5): ("Hipocalemia", "Normal", "Hipercalemia"),
+        ("sis_renal_magnesio", "lab_1_mg", 1.5, 2.2): ("Hipomagnesemia", "Normal", "Hipermagnesemia"),
+        ("sis_renal_fosforo", "lab_1_pi", 2.0, 4.5): ("Hipofosfatemia", "Normal", "Hiperfosfatemia"),
+        ("sis_renal_calcio", "lab_1_cai", 1.1, 1.3): ("Hipocalcemia", "Normal", "Hipercalcemia"),
+    }
+    for (sis_key, lab_key, lim_hipo, lim_hiper), (label_hipo, label_norm, label_hiper) in _MAP_ELETROLITO.items():
+        val = _parse_num(st.session_state.get(lab_key, ""))
+        status = _eletrolito_status(val, lim_hipo, lim_hiper)
+        if status == "hipo":
+            _set(sis_key, label_hipo)
+        elif status == "normal":
+            _set(sis_key, label_norm)
+        elif status == "hiper":
+            _set(sis_key, label_hiper)
+
+    # 3. Antibióticos atuais → Infeccioso (nomes 1, 2, 3 — na ordem, status Atual)
+    ordem_atb = st.session_state.get("atb_ordem", list(range(1, 9)))
+    atuais = [st.session_state.get(f"atb_{idx}_nome", "") for idx in ordem_atb
+              if st.session_state.get(f"atb_{idx}_status") == "Atual"]
     for i in range(1, 4):
-        _set(f"sis_infec_atb_{i}", _limpar(st.session_state.get(f"atb_curr_{i}_nome", "")))
+        _set(f"sis_infec_atb_{i}", _limpar(atuais[i - 1] if i <= len(atuais) else ""))
 
     # 4. Culturas → Infeccioso (sítio e data de coleta, slots 1–4)
     for i in range(1, 5):

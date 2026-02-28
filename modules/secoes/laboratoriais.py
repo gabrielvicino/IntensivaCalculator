@@ -15,24 +15,38 @@ _LAB_SUFIXOS = [
 
 def _deslocar_laboratoriais():
     """
-    Desloca os resultados: Último → Anterior #2, Anterior #2 → Anterior #3, ..., slot 1 fica vazio.
-    Preserva todos os dados preenchidos. Prepara o slot 1 para novos exames de hoje.
+    Desloca os resultados por data: Hoje→vazio, Ontem→Hoje, Anteontem→Ontem, Anteontem→4 dias atrás.
+    Slot 4 (Laboratoriais Admissão / Externo) é FIXO — nunca é deslocado.
     """
-    for i in range(9, 0, -1):
+    def _copiar(orig: int, dest: int):
         for suf in _LAB_SUFIXOS:
-            key_orig = f"lab_{i}_{suf}"
-            key_dest = f"lab_{i + 1}_{suf}"
+            key_orig = f"lab_{orig}_{suf}"
+            key_dest = f"lab_{dest}_{suf}"
             val = st.session_state.get(key_orig)
             if suf == "gas_tipo":
                 st.session_state[key_dest] = val if val in (None, "Arterial", "Venosa") else None
             else:
                 st.session_state[key_dest] = val if val is not None else ""
-    for suf in _LAB_SUFIXOS:
-        key_1 = f"lab_1_{suf}"
-        if suf == "gas_tipo":
-            st.session_state[key_1] = None
-        else:
-            st.session_state[key_1] = ""
+
+    def _limpar(slot: int):
+        for suf in _LAB_SUFIXOS:
+            key = f"lab_{slot}_{suf}"
+            if suf == "gas_tipo":
+                st.session_state[key] = None
+            else:
+                st.session_state[key] = ""
+
+    # Ordem reversa para não sobrescrever antes de ler
+    # 9→10, 8→9, 7→8, 6→7, 5→6 (demais exames)
+    for i in range(9, 4, -1):
+        _copiar(i, i + 1)
+    # 3→5 (anteontem vira 4 dias atrás; pula slot 4)
+    _copiar(3, 5)
+    # 2→3, 1→2 (ontem→anteontem, hoje→ontem)
+    _copiar(2, 3)
+    _copiar(1, 2)
+    # Slot 1 fica vazio; slot 4 permanece inalterado
+    _limpar(1)
 
 
 # 1. Definição das Variáveis (10 Slots de Data)
@@ -82,9 +96,17 @@ def get_campos():
         })
     return campos
 
-# Função auxiliar para desenhar UM card de data
+# Títulos dos slots: 1=Hoje, 2=Ontem, 3=Anteontem, 4=Lab Admissão/Externo, 5+=Anteriores
+_SLOT_TITULOS = {
+    1: "Hoje",
+    2: "Ontem",
+    3: "Anteontem",
+    4: "Laboratoriais Admissão / Externo",
+}
+
+
 def _render_slot(i):
-    titulo = "Último Resultado" if i == 1 else f"Resultado Anterior #{i}"
+    titulo = _SLOT_TITULOS.get(i) or f"Resultado Anterior #{i}"
     
     with st.container(border=True):
         # Cabeçalho: Data
@@ -203,8 +225,8 @@ def render(_agent_btn_callback=None):
     st.text_area("Notas", key="laboratoriais_notas", height="content", placeholder="Cole neste campo a evolução...", label_visibility="collapsed")
     st.write("")
 
-    # Botões: Evolução Hoje | Completar Campos | Extrair Exames
-    _bcol1, _bcol2, _bcol3, _ = st.columns([1, 1, 1, 3])
+    # Botões: Evolução Hoje | Parsing Exames | Completar Campos | Extrair Exames
+    _bcol1, _bcol2, _bcol3, _bcol4, _ = st.columns([1, 1, 1, 1, 2])
     with _bcol1:
         evo_clicked = st.form_submit_button(
             "Evolução Hoje",
@@ -216,9 +238,17 @@ def render(_agent_btn_callback=None):
             _deslocar_laboratoriais()
             st.toast("✅ Resultados deslocados. Último → Anterior #2, etc. Slot 1 pronto para preenchimento.", icon="✅")
     with _bcol2:
+        if st.form_submit_button(
+            "Parsing Exames",
+            key="_fsbtn_lab_deterministico",
+            use_container_width=True,
+            help="Preenche deterministicamente (DD/MM – Hb x | Ht x | ...). Não perde dados já preenchidos.",
+        ):
+            st.session_state["_lab_deterministico_pendente"] = True
+    with _bcol3:
         if _agent_btn_callback:
             _agent_btn_callback()
-    with _bcol3:
+    with _bcol4:
         if st.form_submit_button(
             "Extrair Exames",
             key="_fsbtn_extrair_lab",
@@ -227,14 +257,13 @@ def render(_agent_btn_callback=None):
         ):
             st.session_state["_lab_extrair_pendente"] = True
     
-    # --- 2 Datas VISÍVEIS ---
-    _render_slot(1)
-    st.write("")
-    _render_slot(2)
+    # --- 4 Slots VISÍVEIS (Hoje, Ontem, Anteontem, Lab Externos) ---
+    for i in range(1, 5):
+        _render_slot(i)
+        st.write("")
     
-    # --- 8 Datas OCULTAS ---
-    st.write("")
-    with st.expander("Ver histórico laboratorial antigo (Slots 3 a 10)"):
-        for i in range(3, 11):
+    # --- Demais exames (fechado por padrão) ---
+    with st.expander("Demais exames", expanded=False):
+        for i in range(5, 11):
             _render_slot(i)
             st.write("")
