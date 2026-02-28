@@ -78,10 +78,16 @@ def _secao_identificacao() -> list[str]:
     if origem:
         corpo.append(f"Origem: {origem}")
 
-    # 5. Equipe
+    # 5. Equipe Titular / Interconsultora
     equipe = _get("equipe")
-    if equipe:
-        corpo.append(f"Equipe Titular: {equipe}")
+    interconsultora = _get("interconsultora")
+    if equipe or interconsultora:
+        partes_eq = []
+        if equipe:
+            partes_eq.append(equipe)
+        if interconsultora:
+            partes_eq.append(interconsultora)
+        corpo.append(f"Equipe Titular / Interconsultora: {'; '.join(partes_eq)}")
 
     # 6. Data internação hospitalar
     di_hosp = _get("di_hosp")
@@ -138,11 +144,11 @@ def _secao_identificacao() -> list[str]:
     if not corpo:
         return []
 
-    # Departamento aparece ANTES do header de seção
+    # Departamento aparece ANTES do header de seção (sempre em MAIÚSCULO)
     departamento = _get("departamento")
     header = []
     if departamento:
-        header = [f"# {departamento} #", ""]
+        header = [f"# {str(departamento).strip().upper()} #", ""]
     return header + ["# Identificação & Scores"] + corpo
 
 
@@ -357,7 +363,7 @@ def _secao_dispositivos() -> list[str]:
     if retirados:
         if corpo:
             corpo.append("")
-        corpo.append("# Dispositivos Retirados")
+        corpo.append("# Dispositivos Prévios")
         for i, linha in enumerate(retirados, 1):
             corpo.append(f"{i}- {linha}")
 
@@ -404,7 +410,16 @@ def _secao_muc() -> list[str]:
 
     adesao = _get("muc_adesao_global")
     if adesao:
-        corpo.append("Uso Desconhecido" if adesao == "Desconhecido" else adesao)
+        corpo.append(adesao)  # Uso Regular / Uso Irregular / Desconhecido
+
+    alergia = st.session_state.get("muc_alergia")
+    alergia_obs = _get("muc_alergia_obs")
+    if alergia == "Presente":
+        corpo.append(f"Alergias: {alergia_obs}" if alergia_obs else "Alergias: presente")
+    elif alergia == "Nega":
+        corpo.append("Nega alergias")
+    elif alergia == "Desconhecido":
+        corpo.append("Desconhece alergias")
 
     corpo += linhas
     return corpo
@@ -413,10 +428,35 @@ def _secao_muc() -> list[str]:
 def _secao_comorbidades() -> list[str]:
     """
     Gera as linhas da seção '# Comorbidades'.
-    Formato: {i}- {nome}[, {class}]
+    Etilismo, Tabagismo, SPA na mesma linha. Ausente→Nega, Presente→Ativo.
+    Formato: Etilismo: Nega | Tabagismo: Ativo; 20 anos-maço | SPA: Nega
     """
-    linhas = []
+    corpo = []
 
+    def _etil_tbg_spa(label, key, obs_key):
+        val = st.session_state.get(key)
+        if not val:
+            return None
+        exibir = "Nega" if val == "Ausente" else ("Ativo" if val == "Presente" else val)
+        obs = _get(obs_key)
+        if exibir == "Ativo" and obs:
+            return f"{label}: {exibir}; {obs}"
+        return f"{label}: {exibir}"
+
+    partes = []
+    for label, key, obs_key in [
+        ("Etilismo", "cmd_etilismo", "cmd_etilismo_obs"),
+        ("Tabagismo", "cmd_tabagismo", "cmd_tabagismo_obs"),
+        ("SPA", "cmd_spa", "cmd_spa_obs"),
+    ]:
+        p = _etil_tbg_spa(label, key, obs_key)
+        if p:
+            partes.append(p)
+    if partes:
+        corpo.append(" | ".join(partes))
+
+    # Lista de comorbidades
+    linhas = []
     for i in range(1, 11):
         nome = _get(f"cmd_{i}_nome")
         if not nome:
@@ -427,9 +467,11 @@ def _secao_comorbidades() -> list[str]:
             linha += f"; {classif}"
         linhas.append(f"{len(linhas)+1}- {linha}")
 
-    if not linhas:
+    corpo.extend(linhas)
+
+    if not corpo:
         return []
-    return ["# Comorbidades"] + linhas
+    return ["# Comorbidades"] + corpo
 
 
 def _calcular_dias(data_ini: str, data_fim: str) -> str:
@@ -447,18 +489,22 @@ def _calcular_dias(data_ini: str, data_fim: str) -> str:
 
 def _secao_antibioticos() -> list[str]:
     """
-    Gera as linhas da seção Antibióticos Atuais e Prévios.
-    Formato atual: {i}- {nome}[; Foco {foco}][; {tipo_expandido}][; {data_ini} → {data_fim}[ (Programação de X dias)]]
-    Formato prévio: {i}- {nome}[; Foco {foco}][; {tipo_expandido}][; {data_ini} - {data_fim}]
+    Gera as linhas da seção Antibióticos.
+    Lista única com status Atual/Prévio. Saída:
+    # Antibiótico Atual
+    1- {nome}[; Foco {foco}][; {tipo}][; {data_ini} → {data_fim}[ (X dias)]]
+    # Antibiótico Prévio
+    1- {nome}[; Foco {foco}][; {tipo}][; {data_ini} - {data_fim}]
     """
     _TIPO_EXPANDIDO = {"Empírico": "Empírico", "Guiado por Cultura": "Guiado por Cultura"}
 
     def _linha_atual(i, idx):
-        nome     = _get(f"atb_curr_{idx}_nome")
-        foco     = _get(f"atb_curr_{idx}_foco")
-        tipo     = _get(f"atb_curr_{idx}_tipo") or ""
-        data_ini = _get(f"atb_curr_{idx}_data_ini")
-        data_fim = _get(f"atb_curr_{idx}_data_fim")
+        nome     = _get(f"atb_{idx}_nome")
+        foco     = _get(f"atb_{idx}_foco")
+        tipo     = _get(f"atb_{idx}_tipo") or ""
+        data_ini = _get(f"atb_{idx}_data_ini")
+        data_fim = _get(f"atb_{idx}_data_fim")
+        num_dias = _get(f"atb_{idx}_num_dias")
         if not nome:
             return None
         partes = [nome]
@@ -467,21 +513,22 @@ def _secao_antibioticos() -> list[str]:
         if tipo in _TIPO_EXPANDIDO:
             partes.append(_TIPO_EXPANDIDO[tipo])
         if data_ini and data_fim:
-            prog = _calcular_dias(data_ini, data_fim)
+            prog = num_dias.strip() if num_dias else _calcular_dias(data_ini, data_fim)
             datas = f"{data_ini} → {data_fim}"
             if prog:
-                datas += f" ({prog})"
+                suf = prog if "dia" in str(prog).lower() else f"{prog} dias"
+                datas += f" (Programado {suf})"
             partes.append(datas)
         elif data_ini:
             partes.append(data_ini)
         return f"{i}- " + "; ".join(partes)
 
     def _linha_previo(i, idx):
-        nome     = _get(f"atb_prev_{idx}_nome")
-        foco     = _get(f"atb_prev_{idx}_foco")
-        tipo     = _get(f"atb_prev_{idx}_tipo") or ""
-        data_ini = _get(f"atb_prev_{idx}_data_ini")
-        data_fim = _get(f"atb_prev_{idx}_data_fim")
+        nome     = _get(f"atb_{idx}_nome")
+        foco     = _get(f"atb_{idx}_foco")
+        tipo     = _get(f"atb_{idx}_tipo") or ""
+        data_ini = _get(f"atb_{idx}_data_ini")
+        data_fim = _get(f"atb_{idx}_data_fim")
         if not nome:
             return None
         partes = [nome]
@@ -490,39 +537,44 @@ def _secao_antibioticos() -> list[str]:
         if tipo in _TIPO_EXPANDIDO:
             partes.append(_TIPO_EXPANDIDO[tipo])
         if data_ini and data_fim:
-            partes.append(f"{data_ini} - {data_fim}")
+            dias_uso = _calcular_dias(data_ini, data_fim)
+            if dias_uso:
+                n = dias_uso.split()[0]
+                partes.append(f"{data_ini} - {data_fim} (Uso por {n} dias)")
+            else:
+                partes.append(f"{data_ini} - {data_fim}")
         elif data_ini:
             partes.append(data_ini)
         elif data_fim:
             partes.append(data_fim)
         return f"{i}- " + "; ".join(partes)
 
-    ordem_curr = st.session_state.get("atb_curr_ordem", list(range(1, 6)))
-    ordem_prev = st.session_state.get("atb_prev_ordem", list(range(1, 6)))
+    ordem = st.session_state.get("atb_ordem", list(range(1, 9)))
 
     atuais = []
-    for pos, idx in enumerate(ordem_curr, 1):
-        linha = _linha_atual(pos, idx)
-        if linha:
-            atuais.append(linha)
-
     previos = []
-    for pos, idx in enumerate(ordem_prev, 1):
-        linha = _linha_previo(pos, idx)
-        if linha:
-            previos.append(linha)
+    for idx in ordem:
+        status = _get(f"atb_{idx}_status")
+        if status == "Atual":
+            linha = _linha_atual(len(atuais) + 1, idx)
+            if linha:
+                atuais.append(linha)
+        elif status == "Prévio":
+            linha = _linha_previo(len(previos) + 1, idx)
+            if linha:
+                previos.append(linha)
 
     if not atuais and not previos:
         return []
 
     resultado = []
     if atuais:
-        resultado.append("# Antibióticos Atuais")
+        resultado.append("# Antibiótico Atual")
         resultado.extend(atuais)
     if previos:
         if resultado:
             resultado.append("")
-        resultado.append("# Antibióticos Prévios")
+        resultado.append("# Antibiótico Prévio")
         resultado.extend(previos)
 
     return resultado
@@ -647,7 +699,7 @@ def _secao_laboratoriais() -> list[str]:
 
         linhas = []
         if data:
-            linhas.append(f">>> {data}")
+            linhas.append(f"> {data}")
         if linha_main:
             linhas.append(linha_main)
         if outros:
@@ -705,7 +757,7 @@ def _secao_controles() -> list[str]:
 
         linhas = []
         if data:
-            linhas.append(f">>> {data}")
+            linhas.append(f"> {data}")
         if vitais:
             linhas.append(" | ".join(vitais))
         bh_parts = []
@@ -908,7 +960,9 @@ def _secao_sistemas() -> list[str]:
         meta = _s("sis_neuro_sedacao_meta")
         linha_sed = "Sedação: " + " | ".join(sed_entries)
         if meta:
-            linha_sed += f"; Meta Rass {meta}"
+            m = str(meta).strip()
+            m = m.replace("RASS", "").replace("Rass", "").strip() or m
+            linha_sed += f"; Meta Rass {m}"
         neuro.append(linha_sed)
 
     bnm_med = _s("sis_neuro_bloqueador_med")
@@ -1065,12 +1119,16 @@ def _secao_sistemas() -> list[str]:
         if tec:
             tec_s = f"{tec} seg" if tec.strip() and "seg" not in tec.lower() else tec
             perf_p.append(f"TEC: {tec_s}")
-        fr_ = _s("sis_cardio_fluido_responsivo"); ft_ = _s("sis_cardio_fluido_tolerante")
-        if fr_ == "Sim":   perf_p.append("fluidoresponsivo")
-        elif fr_ == "Não": perf_p.append("não fluidoresponsivo")
-        if ft_ == "Sim":   perf_p.append("fluidotolerante")
-        elif ft_ == "Não": perf_p.append("não fluidotolerante")
         cardio.append(", ".join(perf_p))
+    fr_ = _s("sis_cardio_fluido_responsivo")
+    ft_ = _s("sis_cardio_fluido_tolerante")
+    if fr_ or ft_:
+        l1 = "fluidoresponsivo" if fr_ == "Sim" else ("Não fluidoresponsivo;" if fr_ == "Não" else None)
+        l2 = "fluidotolerante" if ft_ == "Sim" else ("não fluidotolerante" if ft_ == "Não" else None)
+        if l1:
+            cardio.append(l1)
+        if l2:
+            cardio.append(l2)
 
     dvas = []
     for i in range(1, 5):
@@ -1086,7 +1144,7 @@ def _secao_sistemas() -> list[str]:
 
     if cardio:
         corpo.append("")
-        corpo.append("- CARDIOVASCULAR")
+        corpo.append("- Cardiovascular")
         corpo.extend(cardio)
 
     # ── GASTROINTESTINAL / NUTRICIONAL ───────────────────────────────────────
@@ -1281,13 +1339,8 @@ def _secao_sistemas() -> list[str]:
 
     iso = _s("sis_infec_isolamento")
     if iso == "Sim":
-        i_tipo = _s("sis_infec_isolamento_tipo"); i_mot = _s("sis_infec_isolamento_motivo")
-        linha_iso = "Isolamento:"
-        if i_tipo: linha_iso += f" {i_tipo}"
-        if i_mot:  linha_iso += f" por {i_mot}"
-        infec.append(linha_iso)
-    elif iso == "Não":
-        infec.append("Sem isolamento")
+        i_tipo = _s("sis_infec_isolamento_tipo")
+        infec.append(f"Isolamento: {i_tipo}" if i_tipo else "Isolamento: presente")
 
     pat = _s("sis_infec_patogenos")
     if pat: infec.append(f"Patógenos isolados: {pat}")
@@ -1307,11 +1360,14 @@ def _secao_sistemas() -> list[str]:
 
     anticoag = _s("sis_hemato_anticoag")
     if anticoag == "Sim":
-        ac_t = _s("sis_hemato_anticoag_tipo"); ac_m = _s("sis_hemato_anticoag_motivo")
-        linha_ac = "Anticoagulação:"
-        if ac_t: linha_ac += f" {ac_t}"
-        if ac_m: linha_ac += f" devido {ac_m}"
-        hemato.append(linha_ac)
+        ac_t = _s("sis_hemato_anticoag_tipo")
+        ac_m = _s("sis_hemato_anticoag_motivo")
+        if ac_t == "Plena" and ac_m:
+            hemato.append(f"Anticoagulação: Plena, por {ac_m}")
+        elif ac_t:
+            hemato.append(f"Anticoagulação: {ac_t}")
+        else:
+            hemato.append("Anticoagulação: em uso")
     elif anticoag == "Não":
         hemato.append("Sem anticoagulação")
 
@@ -1366,7 +1422,10 @@ def _secao_sistemas() -> list[str]:
     cruzes = _s("sis_pele_edema_cruzes")
     if edema == "Presente":
         cruzes_str = str(cruzes).strip() if cruzes else ""
-        pele.append(f"Edema presente{f', cacifo {cruzes_str} cruzes' if cruzes_str else ''}")
+        if cruzes_str in ("1", "2", "3", "4"):
+            pele.append(f"Edema presente, {cruzes_str}+")
+        else:
+            pele.append("Edema presente")
     elif edema == "Ausente":
         pele.append("Sem edema")
 

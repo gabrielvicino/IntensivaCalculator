@@ -1,8 +1,18 @@
 import streamlit as st
 
 # 1. Definição das Variáveis (10 Slots Total)
+_OPCOES_ETIL_TBG_SPA = ["Desconhecido", "Ausente", "Presente"]
+
 def get_campos():
-    campos = {'comorbidades_notas': ''}
+    campos = {
+        'comorbidades_notas': '',
+        'cmd_etilismo': None,
+        'cmd_etilismo_obs': '',
+        'cmd_tabagismo': None,
+        'cmd_tabagismo_obs': '',
+        'cmd_spa': None,
+        'cmd_spa_obs': '',
+    }
     for i in range(1, 11):
         campos.update({
             f'cmd_{i}_nome': '',
@@ -30,6 +40,23 @@ def render(_agent_btn_callback=None):
     st.text_area("Notas", key="comorbidades_notas", height="content", placeholder="Cole neste campo a evolução...", label_visibility="collapsed")
     st.write("")
     if _agent_btn_callback: _agent_btn_callback()
+
+    # --- Etilismo, Tabagismo, SPA (entre Comorbidades e Comorbidade 1) ---
+    with st.container(border=True):
+        col_etil, col_tbg, col_spa = st.columns(3)
+        with col_etil:
+            st.markdown("**Etilismo**")
+            st.pills("Etilismo", _OPCOES_ETIL_TBG_SPA, key="cmd_etilismo", default=None, label_visibility="collapsed")
+            st.text_input("Obs Etilismo", key="cmd_etilismo_obs", placeholder="Observação...", label_visibility="collapsed")
+        with col_tbg:
+            st.markdown("**Tabagismo**")
+            st.pills("Tabagismo", _OPCOES_ETIL_TBG_SPA, key="cmd_tabagismo", default=None, label_visibility="collapsed")
+            st.text_input("Obs Tabagismo", key="cmd_tabagismo_obs", placeholder="Observação...", label_visibility="collapsed")
+        with col_spa:
+            st.markdown("**Substâncias Psicoativas**")
+            st.pills("SPA", _OPCOES_ETIL_TBG_SPA, key="cmd_spa", default=None, label_visibility="collapsed")
+            st.text_input("Obs SPA", key="cmd_spa_obs", placeholder="Observação...", label_visibility="collapsed")
+    st.write("")
     
     # --- 3 Comorbidades VISÍVEIS ---
     for i in range(1, 4):

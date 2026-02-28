@@ -1,10 +1,14 @@
 import streamlit as st
 
 # 1. Definição das Variáveis
+_OPCOES_ALERGIA = ["Desconhecido", "Nega", "Presente"]
+
 def get_campos():
     campos = {
         'muc_notas': '',
-        'muc_adesao_global': None
+        'muc_adesao_global': None,
+        'muc_alergia': None,
+        'muc_alergia_obs': '',
     }
     for i in range(1, 21):
         campos.update({
@@ -84,6 +88,20 @@ def render(_agent_btn_callback=None):
             ["Uso Regular", "Uso Irregular", "Desconhecido"],
             key="muc_adesao_global",
             label_visibility="collapsed"
+        )
+        st.markdown("**Alergia**")
+        st.pills(
+            "Alergia",
+            _OPCOES_ALERGIA,
+            key="muc_alergia",
+            default=None,
+            label_visibility="collapsed",
+        )
+        st.text_input(
+            "Obs Alergia",
+            key="muc_alergia_obs",
+            placeholder="Ex.: Penicilina, Dipirona...",
+            label_visibility="collapsed",
         )
     
     st.write("")

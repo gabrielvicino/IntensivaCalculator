@@ -69,7 +69,6 @@ def render(_agent_btn_callback=None):
         placeholder="Cole neste campo os controles do prontuário...",
         label_visibility="collapsed",
     )
-    if _agent_btn_callback: _agent_btn_callback()
 
     st.markdown("""
     <style>
@@ -87,8 +86,8 @@ def render(_agent_btn_callback=None):
     """, unsafe_allow_html=True)
 
     with st.container(border=True):
-        # Botão Evolução Hoje | Período (24h/12h) — mesma linha, proporções iguais
-        _col_evo, _col_periodo = st.columns(2)
+        # Botão Evolução Hoje | Parsing Controles | Completar Campos | Período (24h/12h)
+        _col_evo, _col_parse, _col_agente, _col_periodo = st.columns(4)
         with _col_evo:
             if st.form_submit_button(
                 "Evolução Hoje",
@@ -97,6 +96,16 @@ def render(_agent_btn_callback=None):
             ):
                 _deslocar_dias()
                 st.toast("Evolução Hoje: hoje está em branco para novos dados.", icon="📅")
+        with _col_parse:
+            if st.form_submit_button(
+                "Parsing Controles",
+                use_container_width=True,
+                help="Preenche deterministicamente (# Controles - 24h, > DD/MM, PAS: min - max...). Não perde dados.",
+            ):
+                st.session_state["_ctrl_deterministico_pendente"] = True
+        with _col_agente:
+            if _agent_btn_callback:
+                _agent_btn_callback()
         with _col_periodo:
             st.pills(
                 "Período",

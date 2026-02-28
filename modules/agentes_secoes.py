@@ -92,6 +92,8 @@ Extraia exatamente as seguintes chaves JSON:
 - leito (string): Número ou identificação do leito do paciente (ex: "206A", "UTI-05", "Leito 3").
 - origem (string): Procedência ou origem do paciente antes da internação atual (ex: "PS", "UPA", "Enfermaria", "Transferência hospitalar", "CC"). Texto literal do documento.
 - equipe (string): Equipe médica responsável pelo paciente (ex: "Clínica Médica", "Cirurgia Geral", "Intensivismo"). Texto literal do documento.
+- departamento (string): Setor/unidade onde o paciente está internado (ex: "UTI Adulto", "Sala Vermelha", "Enfermaria"). Texto literal do documento. Se ausente, null.
+- interconsultora (string): Especialidade ou serviço em interconsulta (ex: "Cardiologia", "Nefrologia"). Texto literal do documento. Se ausente, null.
 - di_hosp (string): Data de internação hospitalar. Manter o formato original do texto (DD/MM/AAAA, MM/AAAA ou MM/AA). Se ausente, null.
 - di_uti (string): Data de entrada na UTI. Manter o formato original do texto. Se ausente, null.
 - di_enf (string): Data de entrada na enfermaria. Manter o formato original do texto. Se ausente, null.
@@ -119,7 +121,7 @@ def preencher_identificacao(texto, api_key, provider, modelo):
     if "saps3" in r:
         r["saps3"] = str(int(r["saps3"])) if r["saps3"] not in (None, "", "null") else ""
     # Campos string: null/None → "" (campos de texto do formulário esperam string)
-    for k in ["nome", "sexo", "prontuario", "leito", "origem", "equipe",
+    for k in ["nome", "sexo", "prontuario", "leito", "origem", "equipe", "departamento", "interconsultora",
               "di_hosp", "di_uti", "di_enf", "mrs", "pps", "cfs"]:
         if r.get(k) is None:
             r[k] = ""
@@ -265,7 +267,7 @@ Ler o texto fornecido na tag <TEXTO_ALVO> e extrair exclusivamente as comorbidad
 # REGRAS DE EXCLUSÃO
 - Dúvida atual vs comorbidade: considerar comorbidade APENAS se for um antecedente explícito.
 - NÃO considerar história familiar.
-- NÃO considerar tabagismo isolado.
+- Tabagismo, etilismo e substâncias psicoativas NÃO vão na lista de comorbidades — vão nos campos dedicados abaixo.
 
 # ENTRADAS
 <TEXTO_ALVO>
@@ -274,6 +276,14 @@ Ler o texto fornecido na tag <TEXTO_ALVO> e extrair exclusivamente as comorbidad
 
 <VARIAVEIS>
 Extraia exatamente as seguintes chaves JSON, gerando-as nesta exata ordem:
+
+# --- ETILISMO, TABAGISMO, SUBSTÂNCIAS PSICOATIVAS ---
+- etilismo (string): EXATAMENTE "Desconhecido", "Ausente" ou "Presente". Se não mencionado, "".
+- etilismo_obs (string): Observação sobre etilismo (ex: "em abstinência", "ex-etilista"). Se ausente, "".
+- tabagismo (string): EXATAMENTE "Desconhecido", "Ausente" ou "Presente". Se não mencionado, "".
+- tabagismo_obs (string): Observação sobre tabagismo (ex: "20 anos-maço", "ex-tabagista"). Se ausente, "".
+- spa (string): EXATAMENTE "Desconhecido", "Ausente" ou "Presente" (Substâncias Psicoativas). Se não mencionado, "".
+- spa_obs (string): Observação sobre SPA (ex: "crack", "maconha"). Se ausente, "".
 
 # --- COMORBIDADES PRÉ-EXISTENTES ---
 # 1. NOMES DOS ANTECEDENTES (Ordem do texto original. Expandir siglas: "HAS" → "Hipertensão Arterial Sistêmica", etc. Sem classificação ou datas. Title Case)
@@ -310,6 +320,20 @@ def preencher_comorbidades(texto, api_key, provider, modelo):
     def _s(key): return str(r.get(key) or "").strip()
 
     resultado = {}
+
+    # Etilismo, Tabagismo, SPA — só grava se valor válido (compatível com pills)
+    for key_ia, key_ui, obs_key in [
+        ("etilismo", "cmd_etilismo", "cmd_etilismo_obs"),
+        ("tabagismo", "cmd_tabagismo", "cmd_tabagismo_obs"),
+        ("spa", "cmd_spa", "cmd_spa_obs"),
+    ]:
+        v = _s(key_ia)
+        if v in ("Desconhecido", "Ausente", "Presente"):
+            resultado[key_ui] = v
+        else:
+            resultado[key_ui] = None
+        resultado[obs_key] = _s(f"{key_ia}_obs")
+
     for i in range(1, 11):
         resultado[f"cmd_{i}_nome"]  = _s(f"comorbidade_{i}_nome")
         resultado[f"cmd_{i}_class"] = _s(f"comorbidade_{i}_class")
@@ -351,7 +375,9 @@ Ler o texto fornecido na tag <TEXTO_ALVO> e extrair as medicações de uso domic
 Extraia exatamente as seguintes chaves JSON, gerando-as nesta exata ordem:
 
 # --- INFORMAÇÕES GERAIS DA TERAPIA DOMICILIAR ---
-- adesao_global (string): Relato sobre a adesão do paciente ao tratamento domiciliar (ex: "regular", "irregular"). Se ausente, "".
+- adesao_global (string): EXATAMENTE "Uso Regular", "Uso Irregular" ou "Desconhecido". Uso Regular = paciente usa medicações conforme prescrito; Uso Irregular = não adere bem; Desconhecido = não há informação. Se ausente, "".
+- alergia (string): EXATAMENTE "Desconhecido", "Nega" ou "Presente". Desconhecido = não há informação; Nega = paciente nega alergias; Presente = há alergias. Se não mencionado, "".
+- alergia_obs (string): Quando alergia = "Presente", liste as alergias (ex: "Penicilina", "Dipirona"). Se ausente, "".
 
 # --- MEDICAÇÕES DE USO CONTÍNUO (MÁXIMO 20) ---
 # 1. NOMES DOS FÁRMACOS (Ordem do texto original. Apenas o princípio ativo)
@@ -431,7 +457,20 @@ def preencher_muc(texto, api_key, provider, modelo):
 
     resultado = {}
 
-    resultado["muc_adesao_global"] = _s("adesao_global") or None
+    # Adesão: mapear para pills ["Uso Regular", "Uso Irregular", "Desconhecido"]
+    v_adesao = _s("adesao_global").strip().lower()
+    if v_adesao in ("uso regular", "regular", "regularmente"):
+        resultado["muc_adesao_global"] = "Uso Regular"
+    elif v_adesao in ("uso irregular", "irregular", "irregularmente"):
+        resultado["muc_adesao_global"] = "Uso Irregular"
+    elif v_adesao in ("desconhecido", "desconhecida", "nao informado", "não informado"):
+        resultado["muc_adesao_global"] = "Desconhecido"
+    else:
+        resultado["muc_adesao_global"] = None if not v_adesao else "Desconhecido"
+    # Alergia: Desconhecido, Nega, Presente + obs
+    v = _s("alergia")
+    resultado["muc_alergia"] = v if v in ("Desconhecido", "Nega", "Presente") else None
+    resultado["muc_alergia_obs"] = _s("alergia_obs")
 
     for i in range(1, 21):
         resultado[f"muc_{i}_nome"] = _s(f"med_dom_{i}_nome")
@@ -798,133 +837,46 @@ _PROMPT_ANTIBIOTICOS = """# CONTEXTO
 Você é um extrator estruturado de dados médicos para prontuário hospitalar em Terapia Intensiva.
 
 # OBJETIVO
-Ler o texto fornecido na tag <TEXTO_ALVO> e extrair os agentes antimicrobianos (Atuais e Prévios), respeitando rigorosamente a ordem arquitetural e de leitura do texto.
+Ler o texto fornecido na tag <TEXTO_ALVO> e extrair os agentes antimicrobianos, respeitando a ordem de leitura do texto. Cada antibiótico tem status "Atual" ou "Prévio".
 
 # CLASSIFICAÇÃO
 - ATUAIS: Em uso no momento, sem suspensão documentada.
 - PRÉVIOS: Suspensos, eventos passados com data de término ou suspensão explícita.
 
-# REGRAS DE EXTRAÇÃO E PASSO A PASSO
-1. ORDEM DE LEITURA E PREENCHIMENTO: Você DEVE preencher o JSON na exata ordem das chaves solicitadas abaixo. Preencha todos os blocos de "Atuais" primeiro (Nomes, Focos, Tipos, Datas), depois os blocos de "Prévios".
-2. CRONOLOGIA DO TEXTO: Liste os antibióticos na mesma ordem em que aparecem no texto fonte.
-3. PREENCHIMENTO VAZIO: O limite é de 5 atuais e 5 prévios. Se a informação não constar explicitamente ou o paciente tiver menos itens, retorne estritamente `""` (string vazia) para os slots sobressalentes. Não use `null`.
-4. CONDUTAS: O campo de conduta ("_conduta") e notas ("_notas") é de preenchimento manual do médico. A IA deve preenchê-los SEMPRE com `""`.
-5. A saída final deve ser EXCLUSIVAMENTE um objeto JSON válido, sem blocos de código markdown ao redor.
+# REGRAS DE EXTRAÇÃO
+1. ORDEM: Preencha atb_1..atb_8 na ordem em que os antibióticos aparecem no texto. Atuais primeiro, depois Prévios.
+2. LIMITE: Máximo 8 antibióticos. Slots vazios: nome="", status="".
+3. CONDUTAS E NOTAS: _conduta e antibioticos_notas sempre "".
+4. Saída: EXCLUSIVAMENTE objeto JSON válido, sem markdown.
 
-# PADRONIZAÇÕES OBRIGATÓRIAS
-- NOME: DCI (Denominação Comum Internacional), Title Case. Sem dose ou frequência. Ex: "Meropenem", "Fluconazol".
-- FOCO: Title Case. Ex: "PAV", "ITU", "Bacteremia". Se ausente, "".
-- TIPO: Deve ser EXATAMENTE "Empírico", "Guiado por Cultura", ou "".
-- OBSERVAÇÕES (Apenas para Prévios): Motivo da suspensão. Sem condutas. Se ausente, "".
-- DATAS: Manter o formato original do texto.
+# PADRONIZAÇÕES
+- NOME: DCI, Title Case. Ex: "Meropenem", "Fluconazol".
+- FOCO: Title Case. Ex: "PAV", "ITU". Se ausente, "".
+- TIPO: EXATAMENTE "Empírico", "Guiado por Cultura" ou "".
+- STATUS: EXATAMENTE "Atual" ou "Prévio".
+- num_dias: Número de dias de tratamento se explícito no texto. Ex: "7". Se ausente, "".
+- OBS (Prévios): Motivo da suspensão. Se ausente, "".
+- DATAS: Formato original do texto.
 
 # ENTRADAS
 <TEXTO_ALVO>
-[O texto limpo com os antibióticos será fornecido pelo usuário aqui]
+[O texto com os antibióticos será fornecido aqui]
 </TEXTO_ALVO>
 
 <VARIAVEIS>
-Extraia exatamente as seguintes chaves JSON, gerando-as nesta exata ordem:
+Extraia as chaves JSON nesta ordem. Para cada antibiótico de 1 a 8, use atb_1, atb_2, ... atb_8:
 
-# --- ANTIBIÓTICOS ATUAIS (MÁXIMO 5) ---
-# 1. NOMES DOS ATUAIS (Ordem do texto original. DCI, Title Case)
-- atb_curr_1_nome (string): Nome do 1º ATB atual.
-- atb_curr_2_nome (string): Nome do 2º ATB atual.
-- atb_curr_3_nome (string): Nome do 3º ATB atual.
-- atb_curr_4_nome (string): Nome do 4º ATB atual.
-- atb_curr_5_nome (string): Nome do 5º ATB atual.
-
-# 2. FOCOS DOS ATUAIS (Title Case. Ex: PAV, ITU. Se ausente, "")
-- atb_curr_1_foco (string): Foco do 1º ATB atual.
-- atb_curr_2_foco (string): Foco do 2º ATB atual.
-- atb_curr_3_foco (string): Foco do 3º ATB atual.
-- atb_curr_4_foco (string): Foco do 4º ATB atual.
-- atb_curr_5_foco (string): Foco do 5º ATB atual.
-
-# 3. TIPOS DOS ATUAIS (Exatamente "Empírico", "Guiado por Cultura" ou "")
-- atb_curr_1_tipo (string): Tipo do 1º ATB atual.
-- atb_curr_2_tipo (string): Tipo do 2º ATB atual.
-- atb_curr_3_tipo (string): Tipo do 3º ATB atual.
-- atb_curr_4_tipo (string): Tipo do 4º ATB atual.
-- atb_curr_5_tipo (string): Tipo do 5º ATB atual.
-
-# 4. DATAS DE INÍCIO DOS ATUAIS (Formato original)
-- atb_curr_1_data_ini (string): Data início do 1º ATB atual.
-- atb_curr_2_data_ini (string): Data início do 2º ATB atual.
-- atb_curr_3_data_ini (string): Data início do 3º ATB atual.
-- atb_curr_4_data_ini (string): Data início do 4º ATB atual.
-- atb_curr_5_data_ini (string): Data início do 5º ATB atual.
-
-# 5. DATAS DE FIM DOS ATUAIS (Geralmente "" se está ativo, ou data programada)
-- atb_curr_1_data_fim (string): Data fim do 1º ATB atual.
-- atb_curr_2_data_fim (string): Data fim do 2º ATB atual.
-- atb_curr_3_data_fim (string): Data fim do 3º ATB atual.
-- atb_curr_4_data_fim (string): Data fim do 4º ATB atual.
-- atb_curr_5_data_fim (string): Data fim do 5º ATB atual.
-
-# 6. CONDUTAS DOS ATUAIS (Sempre "")
-- atb_curr_1_conduta (string): "".
-- atb_curr_2_conduta (string): "".
-- atb_curr_3_conduta (string): "".
-- atb_curr_4_conduta (string): "".
-- atb_curr_5_conduta (string): "".
-
-# --- ANTIBIÓTICOS PRÉVIOS (MÁXIMO 5) ---
-# 1. NOMES DOS PRÉVIOS
-- atb_prev_1_nome (string): Nome do 1º ATB prévio.
-- atb_prev_2_nome (string): Nome do 2º ATB prévio.
-- atb_prev_3_nome (string): Nome do 3º ATB prévio.
-- atb_prev_4_nome (string): Nome do 4º ATB prévio.
-- atb_prev_5_nome (string): Nome do 5º ATB prévio.
-
-# 2. FOCOS DOS PRÉVIOS
-- atb_prev_1_foco (string): Foco do 1º ATB prévio.
-- atb_prev_2_foco (string): Foco do 2º ATB prévio.
-- atb_prev_3_foco (string): Foco do 3º ATB prévio.
-- atb_prev_4_foco (string): Foco do 4º ATB prévio.
-- atb_prev_5_foco (string): Foco do 5º ATB prévio.
-
-# 3. TIPOS DOS PRÉVIOS
-- atb_prev_1_tipo (string): Tipo do 1º ATB prévio.
-- atb_prev_2_tipo (string): Tipo do 2º ATB prévio.
-- atb_prev_3_tipo (string): Tipo do 3º ATB prévio.
-- atb_prev_4_tipo (string): Tipo do 4º ATB prévio.
-- atb_prev_5_tipo (string): Tipo do 5º ATB prévio.
-
-# 4. DATAS DE INÍCIO DOS PRÉVIOS
-- atb_prev_1_data_ini (string): Data início do 1º ATB prévio.
-- atb_prev_2_data_ini (string): Data início do 2º ATB prévio.
-- atb_prev_3_data_ini (string): Data início do 3º ATB prévio.
-- atb_prev_4_data_ini (string): Data início do 4º ATB prévio.
-- atb_prev_5_data_ini (string): Data início do 5º ATB prévio.
-
-# 5. DATAS DE FIM DOS PRÉVIOS
-- atb_prev_1_data_fim (string): Data fim do 1º ATB prévio.
-- atb_prev_2_data_fim (string): Data fim do 2º ATB prévio.
-- atb_prev_3_data_fim (string): Data fim do 3º ATB prévio.
-- atb_prev_4_data_fim (string): Data fim do 4º ATB prévio.
-- atb_prev_5_data_fim (string): Data fim do 5º ATB prévio.
-
-# 6. OBSERVAÇÕES DOS PRÉVIOS (Motivo da suspensão/desfecho)
-- atb_prev_1_obs (string): Observação do 1º ATB prévio.
-- atb_prev_2_obs (string): Observação do 2º ATB prévio.
-- atb_prev_3_obs (string): Observação do 3º ATB prévio.
-- atb_prev_4_obs (string): Observação do 4º ATB prévio.
-- atb_prev_5_obs (string): Observação do 5º ATB prévio.
-
-# 7. CONDUTAS DOS PRÉVIOS (Sempre "")
-- atb_prev_1_conduta (string): "".
-- atb_prev_2_conduta (string): "".
-- atb_prev_3_conduta (string): "".
-- atb_prev_4_conduta (string): "".
-- atb_prev_5_conduta (string): "".
-
-# --- NOTAS GERAIS ---
+- atb_1_nome, atb_1_foco, atb_1_tipo, atb_1_data_ini, atb_1_data_fim, atb_1_num_dias, atb_1_status ("Atual"|"Prévio"), atb_1_obs, atb_1_conduta (sempre "")
+- atb_2_nome, atb_2_foco, atb_2_tipo, atb_2_data_ini, atb_2_data_fim, atb_2_num_dias, atb_2_status, atb_2_obs, atb_2_conduta
+- ... (atb_3 a atb_8, mesma estrutura)
 - antibioticos_notas (string): "".
+
+Slots sem antibiótico: nome="", status="", demais campos "".
 </VARIAVEIS>"""
 
 
 _TIPO_ATB = {"Empírico", "Guiado por Cultura"}
+_STATUS_ATB = {"Atual", "Prévio"}
 
 
 def preencher_antibioticos(texto, api_key, provider, modelo):
@@ -935,26 +887,18 @@ def preencher_antibioticos(texto, api_key, provider, modelo):
     def _s(key): return str(r.get(key) or "").strip()
 
     resultado = {}
-
-    for i in range(1, 6):
-        nome = _s(f"atb_curr_{i}_nome")
-        tipo = _s(f"atb_curr_{i}_tipo")
-        resultado[f"atb_curr_{i}_nome"]     = nome
-        resultado[f"atb_curr_{i}_foco"]     = _s(f"atb_curr_{i}_foco")
-        resultado[f"atb_curr_{i}_tipo"]     = tipo if tipo in _TIPO_ATB else (None if not nome else "")
-        resultado[f"atb_curr_{i}_data_ini"] = _s(f"atb_curr_{i}_data_ini")
-        resultado[f"atb_curr_{i}_data_fim"] = _s(f"atb_curr_{i}_data_fim")
-
-    for i in range(1, 6):
-        nome = _s(f"atb_prev_{i}_nome")
-        tipo = _s(f"atb_prev_{i}_tipo")
-        resultado[f"atb_prev_{i}_nome"]     = nome
-        resultado[f"atb_prev_{i}_foco"]     = _s(f"atb_prev_{i}_foco")
-        resultado[f"atb_prev_{i}_tipo"]     = tipo if tipo in _TIPO_ATB else (None if not nome else "")
-        resultado[f"atb_prev_{i}_data_ini"] = _s(f"atb_prev_{i}_data_ini")
-        resultado[f"atb_prev_{i}_data_fim"] = _s(f"atb_prev_{i}_data_fim")
-        resultado[f"atb_prev_{i}_obs"]      = _s(f"atb_prev_{i}_obs")
-
+    for i in range(1, 9):
+        nome = _s(f"atb_{i}_nome")
+        tipo = _s(f"atb_{i}_tipo")
+        status = _s(f"atb_{i}_status")
+        resultado[f"atb_{i}_nome"]     = nome
+        resultado[f"atb_{i}_foco"]     = _s(f"atb_{i}_foco")
+        resultado[f"atb_{i}_tipo"]     = tipo if tipo in _TIPO_ATB else (None if not nome else "")
+        resultado[f"atb_{i}_data_ini"] = _s(f"atb_{i}_data_ini")
+        resultado[f"atb_{i}_data_fim"] = _s(f"atb_{i}_data_fim")
+        resultado[f"atb_{i}_num_dias"] = _s(f"atb_{i}_num_dias")
+        resultado[f"atb_{i}_status"]   = status if status in _STATUS_ATB else (None if not nome else "")
+        resultado[f"atb_{i}_obs"]      = _s(f"atb_{i}_obs")
     return resultado
 
 
