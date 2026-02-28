@@ -34,11 +34,59 @@ def _caps_para_certo(val):
     return " ".join(resultado)
 
 
+def _caps_obs_linha(val: str) -> str:
+    """
+    Converte linha de obs (diagnósticos) de CAPS para forma gramatical.
+    Nomes científicos de bactérias: Gênero com 1ª maiúscula, espécie em minúsculas.
+    Ex: ENTEROCCOCUS FEACALIS e PROTEUS MIRABILIS -> Enterococcus faecalis e Proteus mirabilis
+    """
+    if val is None or not isinstance(val, str):
+        return val
+    s = str(val).strip()
+    if not s or s != s.upper():
+        return val
+    exceto = {"de", "da", "do", "das", "dos", "e", "em", "com", "para", "por", "a", "o", "as", "os", "no", "na"}
+    palavras = s.split()
+    resultado = []
+    i = 0
+    while i < len(palavras):
+        p = palavras[i]
+        p_lower = p.lower()
+        # Palavra só com letras = candidata a nome científico
+        so_letras = p.replace("-", "").replace(".", "").isalpha()
+        # Par GÊNERO ESPÉCIE (ambos caps, ambos não-conjunção) -> "Gênero espécie"
+        if so_letras and p_lower not in exceto and i + 1 < len(palavras):
+            prox = palavras[i + 1]
+            prox_lower = prox.lower()
+            prox_letras = prox.replace("-", "").replace(".", "").isalpha()
+            if prox_letras and prox_lower not in exceto:
+                resultado.append(p_lower.capitalize())
+                resultado.append(prox_lower)  # espécie em minúsculas
+                i += 2
+                continue
+        if p_lower in exceto:
+            resultado.append(p_lower)
+        else:
+            resultado.append(p_lower.capitalize())
+        i += 1
+    return " ".join(resultado)
+
+
 def _get(key, default=""):
     """Lê do session_state de forma segura. Normaliza CAPS LOCK em texto."""
     val = st.session_state.get(key, default)
     if isinstance(val, str) and val:
         return _caps_para_certo(val)
+    return val
+
+
+def _sigla_upper(val: str) -> str:
+    """Retorna sigla em maiúsculas se for 2-5 letras (CVC, SVD, ITU, PAV)."""
+    if not val or not isinstance(val, str):
+        return val
+    s = val.strip()
+    if 2 <= len(s) <= 5 and s.replace(" ", "").isalpha():
+        return s.upper()
     return val
 
 
@@ -68,7 +116,7 @@ def _secao_identificacao() -> list[str]:
     if prontuario or leito:
         partes = []
         if prontuario:
-            partes.append(f"HC: {prontuario}")
+            partes.append(f"Prontuário: {prontuario}")
         if leito:
             partes.append(f"Leito: {leito}")
         corpo.append(" / ".join(partes))
@@ -89,20 +137,20 @@ def _secao_identificacao() -> list[str]:
             partes_eq.append(interconsultora)
         corpo.append(f"Equipe Titular / Interconsultora: {'; '.join(partes_eq)}")
 
-    # 6. Data internação hospitalar
+    # 6. Data Internação Hospitalar
     di_hosp = _get("di_hosp")
     if di_hosp:
-        corpo.append(f"Data de internação hospitalar: {di_hosp}")
+        corpo.append(f"Data Internação Hospitalar: {di_hosp}")
 
-    # 7. Data entrada UTI
+    # 7. Data Internação UTI
     di_uti = _get("di_uti")
     if di_uti:
-        corpo.append(f"Data de entrada na UTI: {di_uti}")
+        corpo.append(f"Data Internação UTI: {di_uti}")
 
-    # 8. Data entrada enfermaria — só aparece se preenchida
+    # 8. Data Internação Enfermaria — só aparece se preenchida
     di_enf = _get("di_enf")
     if di_enf:
-        corpo.append(f"Data de entrada em enfermaria: {di_enf}")
+        corpo.append(f"Data Internação Enfermaria: {di_enf}")
 
     # 9. SAPS 3
     saps3 = _get("saps3")
@@ -133,9 +181,8 @@ def _secao_identificacao() -> list[str]:
     if cfs:
         corpo.append(f"CFS: {cfs}")
 
-    # 14. Paliativo — somente se True, em caixa alta, sem prefixo
+    # 14. Paliativo — somente se True, em caixa alta, sem espaço extra
     if _get("paliativo", False):
-        corpo.append("")
         corpo.append("PACIENTE EM CUIDADOS PROPORCIONAIS")
 
     # Cabeçalho só aparece se houver conteúdo
@@ -156,14 +203,17 @@ def _obs_para_linhas(obs: str, excluir_conduta: bool = False) -> list[str]:
     """
     Converte o campo obs (multiline) em linhas prefixadas com '> '.
     Se excluir_conduta=True, não inclui linhas que começam com 'Conduta:' (vão para Condutas Registradas).
+    Cada linha é convertida de CAPS para forma gramatical (evitar tudo em maiúsculas).
     """
     linhas = []
-    for linha in obs.splitlines():
+    raw_obs = obs if isinstance(obs, str) else ""
+    for linha in raw_obs.splitlines():
         linha = linha.strip()
         if not linha:
             continue
         if excluir_conduta and linha.lower().startswith("conduta:"):
             continue
+        linha = _caps_obs_linha(linha)  # CAPS -> forma gramatical; bactérias: Gênero espécie
         linhas.append(f"> {linha}")
     return linhas
 
@@ -206,7 +256,7 @@ def _secao_diagnosticos() -> list[str]:
                 partes.append(data_res)
 
         bloco = ["; ".join(partes)]
-        bloco += _obs_para_linhas(_get(f"hd_{id_real}_obs"), excluir_conduta=True)
+        bloco += _obs_para_linhas(st.session_state.get(f"hd_{id_real}_obs", ""), excluir_conduta=True)
 
         if status == "Resolvida":
             resolvidos.append(bloco)
@@ -326,7 +376,7 @@ def _secao_dispositivos() -> list[str]:
     retirados = []
 
     for id_real in ordem:
-        nome = _get(f"disp_{id_real}_nome")
+        nome = _sigla_upper(_get(f"disp_{id_real}_nome"))
         if not nome:
             continue
 
@@ -500,7 +550,7 @@ def _secao_antibioticos() -> list[str]:
 
     def _linha_atual(i, idx):
         nome     = _get(f"atb_{idx}_nome")
-        foco     = _get(f"atb_{idx}_foco")
+        foco     = _sigla_upper(_get(f"atb_{idx}_foco"))
         tipo     = _get(f"atb_{idx}_tipo") or ""
         data_ini = _get(f"atb_{idx}_data_ini")
         data_fim = _get(f"atb_{idx}_data_fim")
@@ -525,7 +575,7 @@ def _secao_antibioticos() -> list[str]:
 
     def _linha_previo(i, idx):
         nome     = _get(f"atb_{idx}_nome")
-        foco     = _get(f"atb_{idx}_foco")
+        foco     = _sigla_upper(_get(f"atb_{idx}_foco"))
         tipo     = _get(f"atb_{idx}_tipo") or ""
         data_ini = _get(f"atb_{idx}_data_ini")
         data_fim = _get(f"atb_{idx}_data_fim")
@@ -757,7 +807,7 @@ def _secao_controles() -> list[str]:
 
         linhas = []
         if data:
-            linhas.append(f"> {data}")
+            linhas.append(f">{data}")
         if vitais:
             linhas.append(" | ".join(vitais))
         bh_parts = []
@@ -778,7 +828,7 @@ def _secao_controles() -> list[str]:
     periodo = (_get("ctrl_periodo") or "24 horas").strip()
     resultado = ["# Controles & Balanço Hídrico"]
     if periodo == "12 horas":
-        resultado.append("Controles em 12 horas")
+        resultado.append(">> 12 horas <<")
         resultado.append("")
     for slot in slots:
         resultado.extend(slot)
@@ -989,8 +1039,8 @@ def _secao_sistemas() -> list[str]:
     # ── RESPIRATÓRIO ─────────────────────────────────────────────────────────
     resp = []
 
-    ausculta = _s("sis_resp_ausculta")
-    if ausculta: resp.append(f"EF: {ausculta}")
+    exame_resp = _s("sis_resp_ausculta")
+    if exame_resp: resp.append(f"Respiratório: {exame_resp}")
 
     modo      = _s("sis_resp_modo")
     modo_vent = _s("sis_resp_modo_vent")
@@ -1098,6 +1148,7 @@ def _secao_sistemas() -> list[str]:
 
     fc    = _s("sis_cardio_fc");           crd = _s("sis_cardio_cardioscopia")
     pam_c = _s("sis_cardio_pam")
+    exame_cardio = _s("sis_cardio_exame_cardio")
     _fc   = f"FC {fc} bpm" if fc and "bpm" not in fc.lower() else (f"FC {fc}" if fc else None)
     _rit  = None
     if crd:
@@ -1109,6 +1160,7 @@ def _secao_sistemas() -> list[str]:
     _pam  = f"PAM {pam_c} mmHg" if pam_c and "mmhg" not in pam_c.lower() else (f"PAM {pam_c}" if pam_c else None)
     hemo  = [p for p in [_fc, _rit, _pam] if p]
     if hemo: cardio.append(", ".join(hemo))
+    if exame_cardio: cardio.append(f"Cardiológico: {exame_cardio}")
 
     perf = _s("sis_cardio_perfusao")
     tec = _s("sis_cardio_tec")
@@ -1123,12 +1175,11 @@ def _secao_sistemas() -> list[str]:
     fr_ = _s("sis_cardio_fluido_responsivo")
     ft_ = _s("sis_cardio_fluido_tolerante")
     if fr_ or ft_:
-        l1 = "fluidoresponsivo" if fr_ == "Sim" else ("Não fluidoresponsivo;" if fr_ == "Não" else None)
+        l1 = "Fluidoresponsivo" if fr_ == "Sim" else ("Não fluidoresponsivo" if fr_ == "Não" else None)
         l2 = "fluidotolerante" if ft_ == "Sim" else ("não fluidotolerante" if ft_ == "Não" else None)
-        if l1:
-            cardio.append(l1)
-        if l2:
-            cardio.append(l2)
+        partes_f = [p for p in [l1, l2] if p]
+        if partes_f:
+            cardio.append("; ".join(partes_f))
 
     dvas = []
     for i in range(1, 5):
@@ -1147,7 +1198,7 @@ def _secao_sistemas() -> list[str]:
         corpo.append("- Cardiovascular")
         corpo.extend(cardio)
 
-    # ── GASTROINTESTINAL / NUTRICIONAL ───────────────────────────────────────
+    # ── EXAME ABDOMINAL / NUTRICIONAL ─────────────────────────────────────────
     gastro = []
 
     ef = _s("sis_gastro_exame_fisico")
@@ -1160,7 +1211,7 @@ def _secao_sistemas() -> list[str]:
             suf = f", icteríco {cruzes_str}+" if cruzes_valido else ", icteríco"
         else:
             suf = ", sem icterícia"
-        gastro.append(f"EF: {ef}{suf}")
+        gastro.append(f"Abdomen: {ef}{suf}")
 
     oral     = _s("sis_gastro_dieta_oral")
     enteral  = _s("sis_gastro_dieta_enteral"); e_vol = _s("sis_gastro_dieta_enteral_vol")
@@ -1206,7 +1257,12 @@ def _secao_sistemas() -> list[str]:
         doses = [f"{d} UI" for d in [i_m, i_t, i_n] if d]
         insulino_str = " - ".join(doses) if doses else ""
         esc = "Escape glicêmico:"
-        if vezes:   esc += f" {vezes}x"
+        if vezes:
+            try:
+                n = int(str(vezes).strip())
+                esc += f" {n} vez" if n == 1 else f" {n} vezes"
+            except (ValueError, TypeError):
+                esc += f" {vezes}"
         if turnos:  esc += f", {turnos}"
         if insulino == "Sim" and insulino_str: esc += f", em insulinoterapia {insulino_str}"
         gastro.append(esc)
@@ -1225,7 +1281,7 @@ def _secao_sistemas() -> list[str]:
         gastro.append(linha_ev)
 
     pocus = _s("sis_gastro_pocus")
-    if pocus: gastro.append(f"Pocus Trato Gastrointestinal: {pocus}")
+    if pocus: gastro.append(f"Pocus Exame Abdominal: {pocus}")
     obs = _s("sis_gastro_obs")
     if obs: gastro.append(f"Obs: {obs}")
     nutri_obs = _s("sis_nutri_obs")
@@ -1233,7 +1289,7 @@ def _secao_sistemas() -> list[str]:
 
     if gastro:
         corpo.append("")
-        corpo.append("- Gastrointestinal")
+        corpo.append("- Exame Abdominal")
         corpo.extend(gastro)
 
     # ── RENAL ────────────────────────────────────────────────────────────────
@@ -1301,8 +1357,13 @@ def _secao_sistemas() -> list[str]:
     febre = _s("sis_infec_febre"); f_v = _s("sis_infec_febre_vezes"); f_u = _s("sis_infec_febre_ultima")
     if febre == "Sim":
         feb = "Febre: Presente"
-        if f_v: feb += f", {f_v}x"
-        if f_u: feb += f" | Último pico febril: {f_u}"
+        if f_v:
+            try:
+                n = int(str(f_v).strip())
+                feb += f", {n} vez" if n == 1 else f", {n} vezes"
+            except (ValueError, TypeError):
+                feb += f", {f_v}"
+        if f_u: feb += f"; Último pico febril: {f_u}"
         infec.append(feb)
     elif febre == "Não":
         infec.append("Febre: Ausente")

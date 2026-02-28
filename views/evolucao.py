@@ -8,6 +8,7 @@ from datetime import date
 from modules import ui, fichas, gerador, fluxo, ia_extrator, agentes_secoes, extrator_exames
 from modules.parser_lab import parse_lab_deterministico
 from modules.parser_controles import parse_controles_deterministico
+from modules.parser_sistemas import parse_sistemas_deterministico
 from utils import load_data, save_evolucao, load_evolucao, check_evolucao_exists, mostrar_rodape
 
 # ==============================================================================
@@ -431,6 +432,30 @@ if _lab_extrair and api_key:
                 # Força rerender para os campos aparecerem preenchidos imediatamente
                 st.rerun()
 
+# ── Parsing Sistemas (determinístico, sem IA) ─────────────────────────────────
+_sist_det = st.session_state.pop("_sistemas_deterministico_pendente", False)
+if _sist_det:
+    texto_sist = st.session_state.get("sistemas_notas", "").strip()
+    if not texto_sist:
+        st.warning("Cole a evolução por sistemas no campo de notas do Bloco 13 primeiro.")
+    else:
+        dados = parse_sistemas_deterministico(texto_sist)
+        staging = st.session_state.get("_agent_staging", {})
+        # 1. Aplica dados parseados
+        for k, v in dados.items():
+            if v is not None and str(v).strip() != "":
+                staging[k] = v
+        # 2. Completa TODOS os campos: aplica defaults pré-preenchidos (Exame Respiratório, Exame Cardiológico, Exame Abdominal)
+        from modules.secoes import sistemas
+        defaults = sistemas.get_campos()
+        for k, v in defaults.items():
+            if k.startswith("sis_") and k not in staging and v and str(v).strip():
+                staging[k] = v
+        st.session_state["_agent_staging"] = staging
+        cnt = sum(1 for k in staging if k.startswith("sis_") and staging.get(k))
+        st.toast(f"✅ {cnt} campos de sistemas preenchidos (determinístico + defaults).", icon="📋")
+        st.rerun()
+
 # ── Completar Seção 13 a partir de Blocos Anteriores ─────────────────────────
 if st.session_state.pop("_completar_blocos_sistemas", False):
 
@@ -498,15 +523,14 @@ if st.session_state.pop("_completar_blocos_sistemas", False):
         ("sis_renal_fosforo", "lab_1_pi", 2.0, 4.5): ("Hipofosfatemia", "Normal", "Hiperfosfatemia"),
         ("sis_renal_calcio", "lab_1_cai", 1.1, 1.3): ("Hipocalcemia", "Normal", "Hipercalcemia"),
     }
-    for (sis_key, lab_key, lim_hipo, lim_hiper), (label_hipo, label_norm, label_hiper) in _MAP_ELETROLITO.items():
+    for (sis_key, lab_key, lim_hipo, lim_hiper), (label_hipo, _label_norm, label_hiper) in _MAP_ELETROLITO.items():
         val = _parse_num(st.session_state.get(lab_key, ""))
         status = _eletrolito_status(val, lim_hipo, lim_hiper)
         if status == "hipo":
             _set(sis_key, label_hipo)
-        elif status == "normal":
-            _set(sis_key, label_norm)
         elif status == "hiper":
             _set(sis_key, label_hiper)
+        # normal: não preenche (sem botão Normal nos pills)
 
     # 3. Antibióticos atuais → Infeccioso (nomes 1, 2, 3 — na ordem, status Atual)
     ordem_atb = st.session_state.get("atb_ordem", list(range(1, 9)))

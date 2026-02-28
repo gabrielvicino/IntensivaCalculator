@@ -91,7 +91,7 @@ def get_campos():
 
     # 2. Respiratório
     campos.update({
-        'sis_resp_ausculta': '',
+        'sis_resp_ausculta': 'MV+, sem ruído adventício, expansão bilateral, sem sinais de desconforto',
         'sis_resp_modo': None,
         'sis_resp_modo_vent': None,
         'sis_resp_oxigenio_modo': '',
@@ -120,6 +120,7 @@ def get_campos():
     # 3. Cardio
     campos.update({
         'sis_cardio_fc': '',
+        'sis_cardio_exame_cardio': '2BNRF, não ausculto sopros significativos',
         'sis_cardio_cardioscopia': '',
         'sis_cardio_pam': '',
         'sis_cardio_perfusao': None,
@@ -192,7 +193,7 @@ def get_campos():
 
     # 7. Gastro
     campos.update({
-        'sis_gastro_exame_fisico': '',
+        'sis_gastro_exame_fisico': 'Abdomen típico, RHA presente, indolor a palpação, sem sinais de peritonite, inocente',
         'sis_gastro_ictericia_presente': None,
         'sis_gastro_ictericia_cruzes': '',
         'sis_gastro_dieta_oral': '',
@@ -266,7 +267,7 @@ def render(_agent_btn_callback=None):
     
     st.text_area("Notas", key="sistemas_notas", height="content", placeholder="Cole neste campo a evolução...", label_visibility="collapsed")
     st.write("")
-    col_evo, col_puxar, col_ag, _ = st.columns([1, 1.7, 1, 6])
+    col_evo, col_parse, col_puxar, col_ag, _ = st.columns([1, 1, 1.5, 1, 5])
     with col_evo:
         evo_clicked = st.form_submit_button(
             "Evolução Hoje",
@@ -277,6 +278,14 @@ def render(_agent_btn_callback=None):
         if evo_clicked:
             _deslocar_sistemas()
             st.toast("✅ Dados deslocados. Ontem → anteontem, hoje → ontem. Campos de hoje prontos para preenchimento.", icon="✅")
+    with col_parse:
+        if st.form_submit_button(
+            "Parsing Sistemas",
+            key="btn_parse_sistemas",
+            use_container_width=True,
+            help="Preenche deterministicamente a partir do texto no campo de notas (# Evolução por sistemas, - Neurológico, - Respiratório, etc.).",
+        ):
+            st.session_state["_sistemas_deterministico_pendente"] = True
     with col_puxar:
         if st.form_submit_button(
             "Completar Blocos Anteriores",
@@ -400,9 +409,9 @@ def render(_agent_btn_callback=None):
     with st.container(border=True):
         st.markdown("**Respiratório**")
         
-        # Ausculta
-        st.markdown("**Ausculta**")
-        st.text_input("Ausculta", key="sis_resp_ausculta", placeholder="Ex: MV+ bilateral, sem sibilos...", label_visibility="collapsed")
+        # Exame Respiratório
+        st.markdown("**Exame Respiratório**")
+        st.text_input("Exame Respiratório", key="sis_resp_ausculta", placeholder="MV+, sem ruído adventício, expansão bilateral, sem sinais de desconforto", label_visibility="collapsed")
         
         # Suporte Ventilatório — títulos na mesma linha, mesmo design
         tit1, tit2, tit3, tit4 = st.columns([2, 1, 1.5, 1])
@@ -502,6 +511,10 @@ def render(_agent_btn_callback=None):
             st.markdown("**PAM**")
             st.text_input("PAM", key="sis_cardio_pam", placeholder="PAM", label_visibility="collapsed")
 
+        # Exame Cardiológico (entre Frequência e Perfusão)
+        st.markdown("**Exame Cardiológico**")
+        st.text_input("Exame Cardiológico", key="sis_cardio_exame_cardio", placeholder="2BNRF, não ausculto sopros significativos", label_visibility="collapsed")
+
         # Perfusão periférica — títulos na mesma linha
         perf_tit, tec_tit = st.columns([2, 1])
         with perf_tit:
@@ -541,15 +554,15 @@ def render(_agent_btn_callback=None):
         st.text_input("Demais cardiovascular", key="sis_cardio_obs", placeholder="Outros achados...", label_visibility="collapsed")
         st.text_input("Conduta", key="sis_cardio_conduta", placeholder="Escreva a conduta aqui...", label_visibility="collapsed")
 
-    # GASTROINTESTINAL
+    # EXAME ABDOMINAL (antes Trato Gastrointestinal)
     with st.container(border=True):
-        st.markdown("**Trato Gastrointestinal**")
+        st.markdown("**Exame Abdominal**")
 
-        # Exame Físico (coluna 1) | Icterícia Presente + Cruzes (coluna 2)
+        # Exame Abdominal (coluna 1) | Icterícia Presente + Cruzes (coluna 2)
         ef_col, icter_col = st.columns([3, 1])
         with ef_col:
-            st.markdown("**Exame Físico**")
-            st.text_input("Exame Físico", key="sis_gastro_exame_fisico", placeholder="Abdome distendido, timpânico, DB negativo...", label_visibility="collapsed")
+            st.markdown("**Exame Abdominal**")
+            st.text_input("Exame Abdominal", key="sis_gastro_exame_fisico", placeholder="Abdomen típico, RHA presente, indolor a palpação, sem sinais de peritonite, inocente", label_visibility="collapsed")
         with icter_col:
             st.markdown("**Icterícia**")
             pills_col, cruzes_col = st.columns([1, 1])
@@ -621,12 +634,12 @@ def render(_agent_btn_callback=None):
         with _ev3:
             st.text_input("Laxativo", key="sis_gastro_laxativo", placeholder="Laxativo", label_visibility="collapsed")
 
-        # Pocus Trato Gastrointestinal
-        st.markdown("**Pocus Trato Gastrointestinal**")
-        st.text_input("Pocus Trato Gastrointestinal", key="sis_gastro_pocus", placeholder="Ex: Ascite leve...", label_visibility="collapsed")
+        # Pocus Exame Abdominal
+        st.markdown("**Pocus Exame Abdominal**")
+        st.text_input("Pocus Exame Abdominal", key="sis_gastro_pocus", placeholder="Ex: Ascite leve...", label_visibility="collapsed")
 
-        # Demais gastro e Conduta
-        st.markdown("**Demais gastrointestinal**")
+        # Demais abdominal e Conduta
+        st.markdown("**Demais abdominal**")
         st.text_input("Demais gastrointestinal", key="sis_gastro_obs", placeholder="Outros achados...", label_visibility="collapsed")
         st.text_input("Conduta", key="sis_gastro_conduta", placeholder="Escreva a conduta aqui...", label_visibility="collapsed")
 
@@ -670,24 +683,34 @@ def render(_agent_btn_callback=None):
         with ur3:
             st.text_input("Ureia anteontem", key="sis_renal_ur_antepen", placeholder="Ureia anteontem", label_visibility="collapsed")
 
-        # Distúrbios hidroeletrolíticos
+        # Distúrbios hidroeletrolíticos (apenas Hipo/Hiper; sem Normal)
+        _OPCOES_DHE = {
+            "sis_renal_sodio": ["Hiponatremia", "Hipernatremia"],
+            "sis_renal_potassio": ["Hipocalemia", "Hipercalemia"],
+            "sis_renal_magnesio": ["Hipomagnesemia", "Hipermagnesemia"],
+            "sis_renal_fosforo": ["Hipofosfatemia", "Hiperfosfatemia"],
+            "sis_renal_calcio": ["Hipocalcemia", "Hipercalcemia"],
+        }
+        for k, opcoes in _OPCOES_DHE.items():
+            if st.session_state.get(k) not in opcoes:
+                st.session_state[k] = None
         st.markdown("**Distúrbio hidroeletrolítico**")
         e1, e2, e3, e4, e5 = st.columns(5)
         with e1:
             st.markdown("**Sódio**")
-            st.pills("Sódio", ["Normal", "Hiponatremia", "Hipernatremia"], key="sis_renal_sodio", label_visibility="collapsed")
+            st.pills("Sódio", ["Hiponatremia", "Hipernatremia"], key="sis_renal_sodio", label_visibility="collapsed")
         with e2:
             st.markdown("**Potássio**")
-            st.pills("Potássio", ["Normal", "Hipocalemia", "Hipercalemia"], key="sis_renal_potassio", label_visibility="collapsed")
+            st.pills("Potássio", ["Hipocalemia", "Hipercalemia"], key="sis_renal_potassio", label_visibility="collapsed")
         with e3:
             st.markdown("**Magnésio**")
-            st.pills("Magnésio", ["Normal", "Hipomagnesemia", "Hipermagnesemia"], key="sis_renal_magnesio", label_visibility="collapsed")
+            st.pills("Magnésio", ["Hipomagnesemia", "Hipermagnesemia"], key="sis_renal_magnesio", label_visibility="collapsed")
         with e4:
             st.markdown("**Fósforo**")
-            st.pills("Fósforo", ["Normal", "Hipofosfatemia", "Hiperfosfatemia"], key="sis_renal_fosforo", label_visibility="collapsed")
+            st.pills("Fósforo", ["Hipofosfatemia", "Hiperfosfatemia"], key="sis_renal_fosforo", label_visibility="collapsed")
         with e5:
             st.markdown("**Cálcio**")
-            st.pills("Cálcio", ["Normal", "Hipocalcemia", "Hipercalcemia"], key="sis_renal_calcio", label_visibility="collapsed")
+            st.pills("Cálcio", ["Hipocalcemia", "Hipercalcemia"], key="sis_renal_calcio", label_visibility="collapsed")
 
         # TRS
         st.markdown("**Terapia de Substituição Renal (TRS)**")
@@ -714,7 +737,11 @@ def render(_agent_btn_callback=None):
     with st.container(border=True):
         st.markdown("**Infeccioso**")
 
-        # Febre 24h
+        # Febre 24h (sanitiza Ausente/Presente do parser → Não/Sim)
+        if st.session_state.get("sis_infec_febre") == "Ausente":
+            st.session_state["sis_infec_febre"] = "Não"
+        elif st.session_state.get("sis_infec_febre") == "Presente":
+            st.session_state["sis_infec_febre"] = "Sim"
         st.markdown("**Febre nas últimas 24h**")
         f1, f2, f3 = st.columns(3)
         with f1:
