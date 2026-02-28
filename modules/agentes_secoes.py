@@ -1321,7 +1321,7 @@ Extraia exatamente as seguintes chaves JSON, gerando-as nesta exata ordem:
 - sis_neuro_conduta (string): "".
 
 # --- 2. RESPIRATÓRIO ---
-- sis_resp_ausculta (string): Descrição da ausculta pulmonar.
+- sis_resp_ausculta (string): Exame Respiratório — descrição do exame físico respiratório (ex: MV+, sem ruído adventício, expansão bilateral).
 - sis_resp_modo (string): Tipo de suporte (Ar Ambiente/Oxigenoterapia/VNI/Cateter de Alto Fluxo/Ventilação Mecânica/"").
 - sis_resp_modo_vent (string): Modo ventilatório (VCV/PCV/PSV/""). Preencher só se em VM.
 - sis_resp_oxigenio_modo (string): Interface O2 (ex: Cateter Nasal, Máscara Venturi). Só se Oxigenoterapia.
@@ -1353,6 +1353,7 @@ Extraia exatamente as seguintes chaves JSON, gerando-as nesta exata ordem:
 - sis_cardio_fc (string): Frequência cardíaca em bpm.
 - sis_cardio_cardioscopia (string): Ritmo na cardioscopia (ex: Sinusal, FA, BAVT).
 - sis_cardio_pam (string): Pressão arterial média em mmHg.
+- sis_cardio_exame_cardio (string): Exame Cardiológico — bulhas, sopros (ex: 2BNRF, não ausculto sopros significativos). "" se ausente.
 - sis_cardio_perfusao (string): Perfusão periférica (Normal/Lentificada/Flush/"").
 - sis_cardio_tec (string): Tempo de enchimento capilar (ex: "3 seg.").
 - sis_cardio_fluido_responsivo (string): Fluido-responsividade (Sim/Não/"").
@@ -1380,11 +1381,11 @@ Extraia exatamente as seguintes chaves JSON, gerando-as nesta exata ordem:
 - sis_renal_ur_antepen (string): Ureia anteontem.
 - sis_renal_ur_ult (string): Ureia ontem.
 - sis_renal_ur_hoje (string): Ureia atual.
-- sis_renal_sodio (string): Distúrbio do sódio (Normal/Hiponatremia/Hipernatremia/""). "" se não mencionado.
-- sis_renal_potassio (string): Distúrbio do potássio (Normal/Hipocalemia/Hipercalemia/""). "" se não mencionado.
-- sis_renal_magnesio (string): Distúrbio do magnésio (Normal/Hipomagnesemia/""). "" se não mencionado.
-- sis_renal_fosforo (string): Distúrbio do fósforo (Normal/Hipofosfatemia/""). "" se não mencionado.
-- sis_renal_calcio (string): Distúrbio do cálcio (Normal/Hipocalcemia/Hipercalcemia/""). "" se não mencionado.
+- sis_renal_sodio (string): Distúrbio do sódio (Hiponatremia/Hipernatremia/""). "" se normal ou não mencionado.
+- sis_renal_potassio (string): Distúrbio do potássio (Hipocalemia/Hipercalemia/""). "" se normal ou não mencionado.
+- sis_renal_magnesio (string): Distúrbio do magnésio (Hipomagnesemia/Hipermagnesemia/""). "" se normal ou não mencionado.
+- sis_renal_fosforo (string): Distúrbio do fósforo (Hipofosfatemia/Hiperfosfatemia/""). "" se normal ou não mencionado.
+- sis_renal_calcio (string): Distúrbio do cálcio (Hipocalcemia/Hipercalcemia/""). "" se normal ou não mencionado.
 - sis_renal_trs (string): Em hemodiálise/TRS (Sim/Não/"").
 - sis_renal_trs_via (string): Acesso da TRS (ex: "Cateter femoral D").
 - sis_renal_trs_ultima (string): Data/Hora da última sessão.
@@ -1431,8 +1432,8 @@ Extraia exatamente as seguintes chaves JSON, gerando-as nesta exata ordem:
 - sis_infec_obs (string): Observações infecciosas livres.
 - sis_infec_conduta (string): "".
 
-# --- 6. GASTROINTESTINAL ---
-- sis_gastro_exame_fisico (string): Descrição literal do exame físico abdominal.
+# --- 6. EXAME ABDOMINAL ---
+- sis_gastro_exame_fisico (string): Exame Abdominal — descrição literal (ex: Abdomen típico, RHA presente, indolor a palpação, sem sinais de peritonite).
 - sis_gastro_ictericia_presente (string): Icterícia (Presente/Ausente/"").
 - sis_gastro_ictericia_cruzes (string): Intensidade da icterícia (ex: "1", "2", "3", "4"). "" se ausente.
 - sis_gastro_dieta_oral (string): Tipo de dieta oral (ex: "Pastosa", "Completa"). "" se ausente.
@@ -1532,7 +1533,7 @@ Retorne EXATAMENTE este JSON com todos os campos. Campos ausentes = "". Inteiros
   "sis_resp_pocus": "", "sis_resp_obs": "", "sis_resp_conduta": "",
 
   "sis_cardio_fc": "", "sis_cardio_cardioscopia": "", "sis_cardio_pam": "",
-  "sis_cardio_perfusao": "", "sis_cardio_tec": "", "sis_cardio_fluido_responsivo": "", "sis_cardio_fluido_tolerante": "",
+  "sis_cardio_exame_cardio": "", "sis_cardio_perfusao": "", "sis_cardio_tec": "", "sis_cardio_fluido_responsivo": "", "sis_cardio_fluido_tolerante": "",
   "sis_cardio_dva_1_med": "", "sis_cardio_dva_1_dose": "",
   "sis_cardio_dva_2_med": "", "sis_cardio_dva_2_dose": "",
   "sis_cardio_dva_3_med": "", "sis_cardio_dva_3_dose": "",
