@@ -243,7 +243,8 @@ _CSS_FORMULARIO = """<style>
     [data-testid="stExpander"] { border: none !important; box-shadow: none !important; background: transparent !important; }
     [data-testid="stExpander"] details { border-radius: 4px !important; border: 1px solid #f0f0f0 !important; background-color: #fafafa; box-shadow: none; margin-bottom: 8px !important; }
     [data-testid="stExpander"] details summary p { font-size: 0.95rem !important; font-weight: 500 !important; margin: 0 !important; color: #666 !important; }
-    [data-testid="stExpander"] details summary { background-color: transparent !important; padding: 0.6rem 0.8rem !important; transition: all 0.15s ease; border-left: 3px solid #e8e8e8; min-height: auto !important; }
+    [data-testid="stExpander"] details summary { background-color: transparent !important; padding: 0.6rem 0.8rem !important; transition: background-color 0.12s ease, box-shadow 0.12s ease; border-left: 3px solid #e8e8e8; min-height: auto !important; }
+    [data-testid="stExpander"] details[open] summary { border-left-color: #1E88E5; }
     [data-testid="stExpander"] details:hover summary { background-color: #f5f5f5 !important; }
     div[data-testid="stTextInput"]:has(input[placeholder="Escreva a conduta aqui..."]) { border-left: 3px solid #43a047; padding-left: 8px; }
     div[data-testid="stCheckbox"] label { white-space: nowrap !important; }

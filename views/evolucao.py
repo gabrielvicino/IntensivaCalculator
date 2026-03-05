@@ -79,10 +79,10 @@ st.session_state["_ia_provider"] = _provider_str
 st.session_state["_ia_modelo"]   = modelo_escolhido
 
 # ==============================================================================
-# TÍTULO E BUSCA
+# TÍTULO E BUSCA (fragmento — digitação não recarrega o formulário pesado)
 # ==============================================================================
 st.title("📝 Evolução Diária")
-st.write("") 
+st.write("")
 
 def _carregar_dados_prontuario(busca: str):
     """Carrega e aplica os dados de um prontuário existente no session_state."""
@@ -117,37 +117,39 @@ def _carregar_dados_prontuario(busca: str):
     return True
 
 
-with st.container():
-    with st.form(key="form_busca_paciente"):
-        c_input, c_btn = st.columns([5, 1], vertical_alignment="bottom")
+@st.fragment
+def _fragment_busca():
+    with st.container():
+        with st.form(key="form_busca_paciente"):
+            c_input, c_btn = st.columns([5, 1], vertical_alignment="bottom")
 
-        with c_input:
-            st.markdown('<label style="font-size: 1.2rem; font-weight: 600; color: #444; margin-bottom: 5px; display: block;">Número de Prontuário:</label>', unsafe_allow_html=True)
-            busca_input = st.text_input(
-                "Label Oculta",
-                placeholder="Digite o número e pressione Enter...",
-                key="busca_input_field",
-                label_visibility="collapsed",
-            )
+            with c_input:
+                st.markdown('<label style="font-size: 1.2rem; font-weight: 600; color: #444; margin-bottom: 5px; display: block;">Número de Prontuário:</label>', unsafe_allow_html=True)
+                busca_input = st.text_input(
+                    "Label Oculta",
+                    placeholder="Digite o número e pressione Enter...",
+                    key="busca_input_field",
+                    label_visibility="collapsed",
+                )
 
-        with c_btn:
-            btn_buscar = st.form_submit_button("🔍 Buscar", use_container_width=True, type="primary")
+            with c_btn:
+                btn_buscar = st.form_submit_button("🔍 Buscar", use_container_width=True, type="primary")
 
-        busca = busca_input.strip() if busca_input else ""
+            busca = busca_input.strip() if busca_input else ""
 
-        if btn_buscar:
-            if not busca:
-                st.warning("Digite o número do prontuário.")
-            else:
-                # check_evolucao_exists usa cache → resposta rápida
-                ja_existe = check_evolucao_exists(busca)
-                if ja_existe:
-                    with st.spinner("Carregando..."):
-                        _carregar_dados_prontuario(busca)
-                    st.rerun()
+            if btn_buscar:
+                if not busca:
+                    st.warning("Digite o número do prontuário.")
                 else:
-                    # Guarda pendência para confirmação fora do form
-                    st.session_state["_busca_pendente_criar"] = busca
+                    ja_existe = check_evolucao_exists(busca)
+                    if ja_existe:
+                        with st.spinner("Carregando..."):
+                            _carregar_dados_prontuario(busca)
+                        st.rerun()
+                    else:
+                        st.session_state["_busca_pendente_criar"] = busca
+
+_fragment_busca()
 
 # ── Confirmação de criação (fora do form para não conflitar) ──────────────────
 if "_busca_pendente_criar" in st.session_state:
