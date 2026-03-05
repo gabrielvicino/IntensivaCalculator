@@ -2,7 +2,7 @@ streamlit>=1.37.0
 pandas
 st-gsheets-connection
 gspread
-google-generativeai
+google-genai
 openai
 Pillow
 python-dotenv
