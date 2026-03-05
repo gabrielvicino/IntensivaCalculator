@@ -1449,7 +1449,7 @@ Ler o texto fornecido na tag <TEXTO_ALVO> e extrair os valores laboratoriais e g
     · `gas_tipo` / `gas2_tipo` / `gas3_tipo` aceita: "Arterial", "Venosa" ou "Pareada".
   HORA: `gas_hora` / `gas2_hora` / `gas3_hora`: horas cheias, formato "HHh" (ex: "16h", "06h").
     · Busque em "Recebimento material:", "Data da coleta" ou similar. Se pareada, use a hora da arterial.
-- OUTROS: Valores não mapeados nas chaves específicas (ex: PTH, TSH) devem ser concatenados na chave `outros` no formato "Exame Valor | Exame Valor".
+- OUTROS / NÃO TRANSCRITOS: Se o texto contiver uma linha no formato "Não Transcritos: ...", copie o conteúdo após "Não Transcritos:" para a chave `lab_1_outros`. Se não houver essa linha, use a chave `outros` para valores não mapeados nas chaves específicas (ex: PTH 2,5 | TSH 3,2), no formato "Exame Valor | Exame Valor".
 
 # ENTRADAS
 <TEXTO_ALVO>
@@ -1553,7 +1553,7 @@ Extraia exatamente as seguintes chaves JSON, gerando-as nesta exata ordem:
 - lab_1_ur_prot (string): Urina - Proteínas.
 - lab_1_ur_cet (string): Urina - Cetonas.
 - lab_1_ur_glic (string): Urina - Glicose.
-- lab_1_outros (string): Outros exames concatenados.
+- lab_1_outros (string): Se o texto tiver "Não Transcritos: ...", copie o conteúdo exato dessa linha aqui. Caso contrário, outros exames não mapeados (ex: "TSH 0,4 | Ferritina 120").
 - lab_1_conduta (string): "".
 
 # --- BLOCO LAB 2 (EXAMES ANTERIORES) ---

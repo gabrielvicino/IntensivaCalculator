@@ -14,6 +14,7 @@ from modules.extrator_exames import (
     PROMPT_AGENTE_COAGULACAO,
     PROMPT_AGENTE_URINA,
     PROMPT_AGENTE_GASOMETRIA,
+    PROMPT_AGENTE_NAO_TRANSCRITOS,
     PROMPT_AGENTE_IDENTIFICACAO_PRESCRICAO,
     PROMPT_AGENTE_DIETA,
     PROMPT_AGENTE_MEDICACOES,
@@ -154,6 +155,12 @@ AGENTES_EXAMES = {
         "nome": "🔴 Gasometria",
         "descricao": "Gas Arterial, Venosa ou Mista",
         "prompt": PROMPT_AGENTE_GASOMETRIA,
+        "ativado_default": True
+    },
+    "nao_transcritos": {
+        "nome": "🔍 Não Transcritos",
+        "descricao": "Exames presentes no texto que não foram capturados pelos demais agentes",
+        "prompt": PROMPT_AGENTE_NAO_TRANSCRITOS,
         "ativado_default": True
     }
 }
@@ -832,7 +839,7 @@ def processar_multi_agente(api_source, api_key, model_name, agentes_selecionados
     #   Linha 4: gasometria
     _AGENTES_INLINE    = ["hematologia_renal"]
     _AGENTES_BIOQUIM   = ["hepatico", "coagulacao"]
-    _AGENTES_SEPARADOS = ["urina", "gasometria"]
+    _AGENTES_SEPARADOS = ["gasometria", "urina"]
 
     def _ok(txt):
         return txt and txt.strip().rstrip('.,:;!? ').upper() != "VAZIO"
@@ -849,10 +856,15 @@ def processar_multi_agente(api_source, api_key, model_name, agentes_selecionados
         if bioquim_partes:
             linhas_saida.append(" | ".join(bioquim_partes))
 
-        # Urina e gasometria — cada uma em linha própria
+        # Gasometria e urina — cada uma em linha própria (gaso antes da urina)
         for aid in _AGENTES_SEPARADOS:
             if aid in resultados_dict and _ok(resultados_dict[aid]):
                 linhas_saida.append(resultados_dict[aid])
+
+        # Exames não transcritos — sempre por último
+        nao_trans = resultados_dict.get("nao_transcritos", "")
+        if _ok(nao_trans):
+            linhas_saida.append(f"Não Transcritos: {nao_trans}")
 
         resultado_exames = "\n".join(linhas_saida)
     else:

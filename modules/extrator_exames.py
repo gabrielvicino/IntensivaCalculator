@@ -291,6 +291,38 @@ Gas Art pH 7,35 / pCO2 40 / pO2 85 / HCO3 22 / BE -2,3 / SatO2 96% / Lac 1,5 / A
 # INPUT PARA PROCESSAR:
 {{TEXTO_INPUT}}"""
 
+_PROMPT_NAO_TRANSCRITOS = """# ATUE COMO
+Especialista em auditoria de laudos laboratoriais.
+
+# TAREFA
+Leia o texto e identifique o nome de TODOS os exames/testes laboratoriais mencionados.
+Em seguida, liste APENAS os exames que NÃO pertencem a nenhuma das categorias abaixo (já cobertas por outros agentes).
+
+# CATEGORIAS JÁ COBERTAS (IGNORE COMPLETAMENTE)
+- Hemograma / Hemato: Hb, Ht, VCM, HCM, RDW, Leucócitos (e diferencial: Seg, Bast, Linf, Mon, Eos, Bas), Plaquetas
+- Renal / Eletrólitos: Creatinina, Ureia, Sódio, Potássio, Magnésio, Fósforo, Cálcio Total, Cálcio Iônico, CaT, CaI, CaI, Pi, Mg, Na, K, Cr, Ur
+- Hepático / Pancreático: TGP, TGO, ALT, AST, FAL, GGT, Bilirrubinas (BT, BD, BI), Proteínas Totais, Albumina, Amilase, Lipase
+- Cardio / Coag / Inflamação: CPK, CK-MB, BNP, NT-proBNP, Troponina, PCR, VHS, TP, TAP, RNI, TTPa, TTPA
+- Urina (EAS): Urina Tipo I, EAS, Elementos Anormais, Urocultura (apenas a parte do sumário/EAS)
+- Gasometria: Gasometria Arterial, Gasometria Venosa, Gasometria Pareada (e todos os seus componentes: pH, pCO2, pO2, HCO3, BE, SatO2, SvO2, Lactato, Anion Gap, Cloreto)
+
+# REGRAS
+1. Liste APENAS exames que NÃO estão nas categorias acima.
+2. Cada nome deve ser conciso (sem resultados, sem datas, apenas o nome do exame).
+3. Separe por " | ".
+4. Se não houver nenhum exame fora das categorias acima, retorne exatamente: VAZIO
+
+# EXEMPLOS DE SAÍDA
+Exemplo 1 (com exames extras): TSH | T4 Livre | Ferritina | Ferro Sérico | Vancomicina Nível
+Exemplo 2 (sem exames extras): VAZIO
+
+# FORMATO DE RESPOSTA
+- Apenas a string com os nomes separados por " | " ou "VAZIO". Sem markdown.
+
+# INPUT PARA PROCESSAR:
+{{TEXTO_INPUT}}"""
+
+
 # Ordem fixa dos agentes de exames (mesma do PACER)
 _AGENTES_EXAMES_ORDEM = [
     "hematologia_renal",
@@ -298,6 +330,7 @@ _AGENTES_EXAMES_ORDEM = [
     "coagulacao",
     "urina",
     "gasometria",
+    "nao_transcritos",
 ]
 _AGENTES_EXAMES_PROMPTS = {
     "hematologia_renal": _PROMPT_HEMATOLOGIA_RENAL,
@@ -305,6 +338,7 @@ _AGENTES_EXAMES_PROMPTS = {
     "coagulacao":        _PROMPT_COAGULACAO,
     "urina":             _PROMPT_URINA,
     "gasometria":        _PROMPT_GASOMETRIA,
+    "nao_transcritos":   _PROMPT_NAO_TRANSCRITOS,
 }
 
 
@@ -449,6 +483,7 @@ PROMPT_AGENTE_HEPATICO                   = _PROMPT_HEPATICO
 PROMPT_AGENTE_COAGULACAO                 = _PROMPT_COAGULACAO
 PROMPT_AGENTE_URINA                      = _PROMPT_URINA
 PROMPT_AGENTE_GASOMETRIA                 = _PROMPT_GASOMETRIA
+PROMPT_AGENTE_NAO_TRANSCRITOS            = _PROMPT_NAO_TRANSCRITOS
 PROMPT_AGENTE_IDENTIFICACAO_PRESCRICAO   = _PROMPT_ID_PRESCRICAO
 PROMPT_AGENTE_DIETA                      = _PROMPT_DIETA
 PROMPT_AGENTE_MEDICACOES                 = _PROMPT_MEDICACOES
@@ -477,7 +512,7 @@ def extrair_exames(texto: str, api_key: str, provider: str, modelo: str) -> str:
     nome_hc   = linhas[0].strip()
     data_linha = linhas[1].strip()
 
-    # Passo 2: 5 agentes especializados em paralelo
+    # Passo 2: 6 agentes especializados em paralelo (5 de exames + nao_transcritos)
     resultados_dict: dict[str, str] = {}
 
     def _worker(agente_id: str):
@@ -489,7 +524,7 @@ def extrair_exames(texto: str, api_key: str, provider: str, modelo: str) -> str:
                 return agente_id, r_limpo
         return agente_id, None
 
-    with ThreadPoolExecutor(max_workers=5) as executor:
+    with ThreadPoolExecutor(max_workers=6) as executor:
         futures = {executor.submit(_worker, aid): aid for aid in _AGENTES_EXAMES_ORDEM}
         for future in as_completed(futures):
             aid, resultado = future.result(timeout=60)
@@ -502,9 +537,10 @@ def extrair_exames(texto: str, api_key: str, provider: str, modelo: str) -> str:
     #   Linha bioquím:   hepatico + coagulacao (joinados com " | ")
     #   Linha própria:   urina
     #   Linha própria:   gasometria
+    #   Linha própria:   Não Transcritos (agente novo)
     _INLINE    = ["hematologia_renal"]
     _BIOQUIM   = ["hepatico", "coagulacao"]
-    _SEPARADOS = ["urina", "gasometria"]
+    _SEPARADOS = ["gasometria", "urina"]
 
     def _ok(v):
         return v and v.strip().rstrip('.,:;!? ').upper() != "VAZIO"
@@ -524,6 +560,11 @@ def extrair_exames(texto: str, api_key: str, provider: str, modelo: str) -> str:
     for aid in _SEPARADOS:
         if aid in resultados_dict and _ok(resultados_dict[aid]):
             linhas_saida.append(resultados_dict[aid])
+
+    # Linha de exames não transcritos (sempre por último)
+    nao_trans = resultados_dict.get("nao_transcritos", "")
+    if _ok(nao_trans):
+        linhas_saida.append(f"Não Transcritos: {nao_trans}")
 
     return "\n".join(linhas_saida)
 
