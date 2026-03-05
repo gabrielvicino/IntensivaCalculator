@@ -1,10 +1,12 @@
 import streamlit as st
-import google.generativeai as genai
 import os
+import json
+import concurrent.futures
+import streamlit.components.v1 as components
 from pathlib import Path
+from datetime import date
 
 # Importa os módulos
-from datetime import date
 from modules import ui, fichas, gerador, fluxo, ia_extrator, agentes_secoes, extrator_exames
 from modules.parser_lab import parse_lab_deterministico
 from modules.parser_controles import parse_controles_deterministico
@@ -45,26 +47,25 @@ fichas.inicializar_estado()
 # ==============================================================================
 # SIDEBAR
 # ==============================================================================
+# ── Configurações de IA — seta discreta na sidebar ─────────────────────────
 with st.sidebar:
-    st.header("Configurações")
+    with st.popover("​", use_container_width=True):
+        provider = st.radio(
+            "Provedor:",
+            ["Google Gemini", "OpenAI GPT"],
+            index=0,
+            key="_ia_provider_radio",
+        )
 
-    provider = st.radio("IA:", ["OpenAI GPT", "Google Gemini"], index=0)
+        if provider == "Google Gemini":
+            api_key = GOOGLE_API_KEY
+            modelo_escolhido = st.selectbox("Modelo:", MODELOS_GEMINI, index=1, key="_ia_modelo_gemini")
+            st.success(f"IA: Google — {modelo_escolhido}")
+        else:  # OpenAI GPT
+            api_key = OPENAI_API_KEY
+            modelo_escolhido = "gpt-4o"
+            st.success("IA: OpenAI — GPT-4o")
 
-    if provider == "OpenAI GPT":
-        api_key      = OPENAI_API_KEY
-        modelo_escolhido = "gpt-4o"
-        st.success("IA: OpenAI - GPT-4o")
-        if api_key and len(api_key) > 10:
-            st.success(f"✅ API Key: ...{api_key[-8:]}")
-        else:
-            st.error("❌ API Key não carregada!")
-
-    else:  # Google Gemini
-        api_key = GOOGLE_API_KEY
-        if api_key:
-            genai.configure(api_key=api_key)
-        modelo_escolhido = st.selectbox("Modelo:", MODELOS_GEMINI, index=0)
-        st.success(f"IA: Google - {modelo_escolhido}")
         if api_key and len(api_key) > 10:
             st.success(f"✅ API Key: ...{api_key[-8:]}")
         else:
@@ -83,80 +84,89 @@ st.session_state["_ia_modelo"]   = modelo_escolhido
 st.title("📝 Evolução Diária")
 st.write("") 
 
+def _carregar_dados_prontuario(busca: str):
+    """Carrega e aplica os dados de um prontuário existente no session_state."""
+    dados = load_evolucao(busca)
+    if not dados:
+        return False
+    data_hora = dados.pop("_data_hora", "")
+    # Migração: hd_atual_* / hd_prev_* → hd_* (schema unificado)
+    if "hd_atual_1_nome" in dados:
+        for i in range(1, 5):
+            dados[f"hd_{i}_nome"]          = dados.get(f"hd_atual_{i}_nome", "")
+            dados[f"hd_{i}_class"]         = dados.get(f"hd_atual_{i}_class", "")
+            dados[f"hd_{i}_data_inicio"]   = dados.get(f"hd_atual_{i}_data", "")
+            dados[f"hd_{i}_data_resolvido"]= ""
+            dados[f"hd_{i}_status"]        = "Atual"
+            dados[f"hd_{i}_obs"]           = dados.get(f"hd_atual_{i}_obs", "")
+            dados[f"hd_{i}_conduta"]       = dados.get(f"hd_atual_{i}_conduta", "")
+        for i in range(1, 5):
+            j = i + 4
+            dados[f"hd_{j}_nome"]          = dados.get(f"hd_prev_{i}_nome", "")
+            dados[f"hd_{j}_class"]         = dados.get(f"hd_prev_{i}_class", "")
+            dados[f"hd_{j}_data_inicio"]   = dados.get(f"hd_prev_{i}_data_ini", "")
+            dados[f"hd_{j}_data_resolvido"]= dados.get(f"hd_prev_{i}_data_fim", "")
+            dados[f"hd_{j}_status"]        = "Resolvida"
+            dados[f"hd_{j}_obs"]           = dados.get(f"hd_prev_{i}_obs", "")
+            dados[f"hd_{j}_conduta"]       = dados.get(f"hd_prev_{i}_conduta", "")
+        dados["hd_ordem"] = list(range(1, 9))
+    campos_validos = fichas.get_todos_campos_keys()
+    st.session_state.update({k: v for k, v in dados.items() if k in campos_validos})
+    st.session_state["_data_hora_carregado"] = data_hora
+    st.toast(f"✅ Prontuário carregado! Última evolução: {data_hora}", icon="📂")
+    return True
+
+
 with st.container():
     with st.form(key="form_busca_paciente"):
-        c_input, c_btn_criar, c_btn_carregar = st.columns([4, 1, 1], vertical_alignment="bottom")
+        c_input, c_btn = st.columns([5, 1], vertical_alignment="bottom")
 
         with c_input:
             st.markdown('<label style="font-size: 1.2rem; font-weight: 600; color: #444; margin-bottom: 5px; display: block;">Número de Prontuário:</label>', unsafe_allow_html=True)
-            busca_input = st.text_input("Label Oculta", placeholder="Digite número do prontuário...", key="busca_input_field", label_visibility="collapsed")
+            busca_input = st.text_input(
+                "Label Oculta",
+                placeholder="Digite o número e pressione Enter...",
+                key="busca_input_field",
+                label_visibility="collapsed",
+            )
 
-        with c_btn_criar:
-            btn_criar = st.form_submit_button("➕ Criar Novo", use_container_width=True)
-
-        with c_btn_carregar:
-            btn_carregar = st.form_submit_button("📂 Carregar Prontuário", use_container_width=True)
+        with c_btn:
+            btn_buscar = st.form_submit_button("🔍 Buscar", use_container_width=True, type="primary")
 
         busca = busca_input.strip() if busca_input else ""
 
-        # ── CRIAR NOVO ──────────────────────────────────────────────────────────
-        if btn_criar:
+        if btn_buscar:
             if not busca:
                 st.warning("Digite o número do prontuário.")
             else:
-                with st.spinner("Verificando prontuário..."):
-                    ja_existe = check_evolucao_exists(busca)
+                # check_evolucao_exists usa cache → resposta rápida
+                ja_existe = check_evolucao_exists(busca)
                 if ja_existe:
-                    st.warning(
-                        f"⚠️ Prontuário **{busca}** já cadastrado. "
-                        "Carregue as informações no botão **\"Carregar Prontuário\"**."
-                    )
+                    with st.spinner("Carregando..."):
+                        _carregar_dados_prontuario(busca)
+                    st.rerun()
                 else:
-                    # Cria registro inicial vazio para reservar o número
-                    st.session_state["prontuario"] = busca
-                    with st.spinner("Criando prontuário..."):
-                        save_evolucao(busca, "", {"prontuario": busca})
-                    st.toast(f"✅ Prontuário {busca} criado! Preencha os dados e salve.", icon="✨")
+                    # Guarda pendência para confirmação fora do form
+                    st.session_state["_busca_pendente_criar"] = busca
 
-        # ── CARREGAR PRONTUÁRIO ─────────────────────────────────────────────────
-        if btn_carregar:
-            if not busca:
-                st.warning("Digite o número do prontuário.")
-            else:
-                with st.spinner("🔍 Carregando prontuário..."):
-                    dados = load_evolucao(busca)
-                if dados:
-                    data_hora = dados.pop("_data_hora", "")
-                    # Migração: hd_atual_* / hd_prev_* → hd_* (schema unificado)
-                    if "hd_atual_1_nome" in dados:
-                        for i in range(1, 5):
-                            dados[f"hd_{i}_nome"] = dados.get(f"hd_atual_{i}_nome", "")
-                            dados[f"hd_{i}_class"] = dados.get(f"hd_atual_{i}_class", "")
-                            dados[f"hd_{i}_data_inicio"] = dados.get(f"hd_atual_{i}_data", "")
-                            dados[f"hd_{i}_data_resolvido"] = ""
-                            dados[f"hd_{i}_status"] = "Atual"
-                            dados[f"hd_{i}_obs"] = dados.get(f"hd_atual_{i}_obs", "")
-                            dados[f"hd_{i}_conduta"] = dados.get(f"hd_atual_{i}_conduta", "")
-                        for i in range(1, 5):
-                            j = i + 4
-                            dados[f"hd_{j}_nome"] = dados.get(f"hd_prev_{i}_nome", "")
-                            dados[f"hd_{j}_class"] = dados.get(f"hd_prev_{i}_class", "")
-                            dados[f"hd_{j}_data_inicio"] = dados.get(f"hd_prev_{i}_data_ini", "")
-                            dados[f"hd_{j}_data_resolvido"] = dados.get(f"hd_prev_{i}_data_fim", "")
-                            dados[f"hd_{j}_status"] = "Resolvida"
-                            dados[f"hd_{j}_obs"] = dados.get(f"hd_prev_{i}_obs", "")
-                            dados[f"hd_{j}_conduta"] = dados.get(f"hd_prev_{i}_conduta", "")
-                        dados["hd_ordem"] = list(range(1, 9))
-                    campos_validos = fichas.get_todos_campos_keys()
-                    st.session_state.update(
-                        {k: v for k, v in dados.items() if k in campos_validos}
-                    )
-                    st.toast(f"✅ Prontuário carregado! Última evolução: {data_hora}", icon="📂")
-                else:
-                    st.warning(
-                        f"⚠️ Prontuário **{busca}** não encontrado. "
-                        "Use o botão **\"Criar Novo\"** para cadastrá-lo."
-                    )
+# ── Confirmação de criação (fora do form para não conflitar) ──────────────────
+if "_busca_pendente_criar" in st.session_state:
+    pend = st.session_state["_busca_pendente_criar"]
+    st.warning(f"Prontuário **{pend}** não encontrado no banco de dados.")
+    st.markdown("**Deseja criar um novo prontuário?**")
+    c_sim, c_nao, _c_esp = st.columns([1, 1, 4])
+    with c_sim:
+        if st.button("✅ Sim, criar", type="primary", use_container_width=True, key="_btn_criar_sim"):
+            st.session_state.pop("_busca_pendente_criar", None)
+            st.session_state["prontuario"] = pend
+            with st.spinner("Criando..."):
+                save_evolucao(pend, "", {"prontuario": pend})
+            st.toast(f"✅ Prontuário {pend} criado! Preencha os dados e salve.", icon="✨")
+            st.rerun()
+    with c_nao:
+        if st.button("✖ Não", use_container_width=True, key="_btn_criar_nao"):
+            st.session_state.pop("_busca_pendente_criar", None)
+            st.rerun()
 
 # ==============================================================================
 # PAINEL DE IDENTIFICAÇÃO
@@ -175,8 +185,6 @@ def _aplicar_agentes_paralelo(secoes: list[str]):
     Roda os agentes das seções fornecidas em paralelo (uma thread por agente).
     Atualiza o session_state com os resultados ao final.
     """
-    import concurrent.futures
-
     tarefas = [
         (sec, st.session_state.get(agentes_secoes._NOTAS_MAP[sec], "").strip())
         for sec in secoes
@@ -197,7 +205,7 @@ def _aplicar_agentes_paralelo(secoes: list[str]):
         fn = agentes_secoes._AGENTES[secao]
         return secao, fn(texto, api_key, _provider_completo(), modelo_escolhido)
 
-    with concurrent.futures.ThreadPoolExecutor(max_workers=len(tarefas)) as executor:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=min(len(tarefas), 8)) as executor:
         futures = {executor.submit(_rodar, s, t): s for s, t in tarefas}
         for future in concurrent.futures.as_completed(futures):
             concluidos += 1
@@ -243,6 +251,23 @@ ui.render_header_secao("1. Prontuário", "📄", ui.COLOR_BLUE)
 
 # ── Input + Extrair ────────────────────────────────────────────────────────────
 with st.container(border=True):
+    # Aviso quando prontuário anterior foi carregado — mostra origem do texto
+    _data_carg = st.session_state.get("_data_hora_carregado", "")
+    _tem_texto_ant = bool(st.session_state.get("texto_bruto_original", "").strip())
+    if _data_carg and _tem_texto_ant:
+        st.info(
+            f"📂 **Prontuário anterior carregado** (salvo em {_data_carg})  \n"
+            "O texto abaixo foi o último colado neste prontuário. "
+            "Substitua por uma nova evolução ou clique em **Extrair Seções** para reprocessar.",
+            icon=None,
+        )
+    elif _data_carg and not _tem_texto_ant:
+        st.info(
+            f"📂 **Prontuário carregado** (salvo em {_data_carg})  \n"
+            "Cole uma nova evolução abaixo para extrair os dados.",
+            icon=None,
+        )
+
     texto_input = st.text_area(
         "Input", height=150,
         label_visibility="collapsed",
@@ -321,16 +346,89 @@ with st.form("form_dados_clinicos"):
 
     st.write("")
     submitted = st.form_submit_button(
-        "📋 Prontuário Completo", type="primary", use_container_width=True
+        "📋 Gerar Prontuário Completo", type="primary", use_container_width=True
     )
 
 # "Condutas Registradas" fica FORA do form: atualiza após qualquer submit (Enter ou botão)
-from modules.secoes import condutas as _condutas_mod
-_condutas_mod.render_condutas_registradas()
+from modules.secoes.condutas import render_condutas_registradas as _render_condutas_reg
+_render_condutas_reg()
 st.write("")
+
+# ==============================================================================
+# DIALOGS — devem ser definidos ANTES dos handlers que os chamam
+# ==============================================================================
+
+@st.dialog("🔍 Gerar Bloco", width="large")
+def _modal_gerar_bloco():
+    from modules import agentes_secoes as _as
+    key    = st.session_state.get("_bloco_secao_key", "")
+    nome   = _as.NOMES_SECOES.get(key, key.capitalize())
+    notas_field = _as._NOTAS_MAP.get(key, "")
+    original = st.session_state.get(notas_field, "").strip() if notas_field else ""
+    gerado   = st.session_state.get("_bloco_secao_texto", "").strip()
+
+    if not gerado:
+        st.warning("Nenhum texto gerado para esta seção.")
+        return
+
+    c1, c2 = st.columns(2)
+    with c1:
+        st.markdown(f"**📄 Notas — {nome}** *(colado)*")
+        st.text_area(
+            "orig_bloco", value=original or "(sem notas)",
+            height=520, label_visibility="collapsed", disabled=True,
+            key="_cmp_bloco_original",
+        )
+    with c2:
+        st.markdown(f"**✅ Bloco {nome}** *(gerado — editável)*")
+        editado = st.text_area(
+            "gen_bloco", value=gerado or "",
+            height=520, label_visibility="collapsed",
+            key="_cmp_bloco_gerado",
+            placeholder="(vazio)",
+        )
+        if editado != gerado:
+            st.session_state["_bloco_secao_texto"] = editado
+
+
+@st.dialog("📊 Comparativo de Laboratoriais", width="large")
+def _modal_comparar_labs():
+    html = gerador.gerar_html_labs()
+    if not html:
+        st.warning("Nenhum dado laboratorial preenchido para comparar.")
+        return
+    st.markdown(html, unsafe_allow_html=True)
+
+
+@st.dialog("📊 Comparativo de Controles & BH", width="large")
+def _modal_comparar_ctrl():
+    html = gerador.gerar_html_controles()
+    if not html:
+        st.warning("Nenhum dado de controles preenchido para comparar.")
+        return
+    st.markdown(html, unsafe_allow_html=True)
+
+
+# ==============================================================================
 
 if submitted:
     st.session_state.texto_final_gerado = gerador.gerar_texto_final()
+
+# Processa "Gerar Bloco" individual disparado via form_submit_button
+_gerar_bloco_pendente = st.session_state.pop("_gerar_bloco_pendente", None)
+if _gerar_bloco_pendente:
+    _texto_bloco = gerador.gerar_secao(_gerar_bloco_pendente)
+    st.session_state["_bloco_secao_key"]   = _gerar_bloco_pendente
+    st.session_state["_bloco_secao_texto"] = _texto_bloco
+    _modal_gerar_bloco()
+
+# Processa "Comparar Labs"
+if st.session_state.pop("_comparar_lab_pendente", False):
+    _modal_comparar_labs()
+
+# Processa "Comparar Controles"
+if st.session_state.pop("_comparar_ctrl_pendente", False):
+    _modal_comparar_ctrl()
 
 # Processa agente individual disparado via form_submit_button dentro do form
 _agente_pendente = st.session_state.pop("_agente_pendente", None)
@@ -433,8 +531,8 @@ if _sist_det:
             if v is not None and str(v).strip() != "":
                 staging[k] = v
         # 2. Completa TODOS os campos: aplica defaults pré-preenchidos (Exame Respiratório, Exame Cardiológico, Exame Abdominal)
-        from modules.secoes import sistemas
-        defaults = sistemas.get_campos()
+        from modules.secoes.sistemas import get_campos as _get_campos_sistemas
+        defaults = _get_campos_sistemas()
         for k, v in defaults.items():
             if k.startswith("sis_") and k not in staging and v and str(v).strip():
                 staging[k] = v
@@ -461,26 +559,6 @@ if st.session_state.pop("_completar_blocos_sistemas", False):
             return s.split("(")[1].split(")")[0].strip()
         return _limpar(s)
 
-    def _parse_num(s):
-        """Converte string para float (aceita vírgula como decimal). Retorna None se inválido."""
-        if not s:
-            return None
-        s = _limpar(str(s)).replace(",", ".")
-        try:
-            return float(s)
-        except ValueError:
-            return None
-
-    def _eletrolito_status(val, lim_hipo, lim_hiper):
-        """Retorna 'Hipo*', 'Normal' ou 'Hiper*' conforme valor e limites."""
-        if val is None:
-            return None
-        if val < lim_hipo:
-            return "hipo"
-        if val > lim_hiper:
-            return "hiper"
-        return "normal"
-
     staging = st.session_state.get("_agent_staging", {})
     _cnt = [0]
 
@@ -491,35 +569,24 @@ if st.session_state.pop("_completar_blocos_sistemas", False):
             staging[sis_key] = val
             _cnt[0] += 1
 
-    # 1. Controles → Renal (diurese e balanço de hoje)
+    # 1. Controles → Renal (diurese e balanço — hoje / ontem / anteontem)
     _set("sis_renal_diurese", _limpar(st.session_state.get("ctrl_hoje_diurese", "")))
     _set("sis_renal_balanco",  _limpar(st.session_state.get("ctrl_hoje_balanco", "")))
+    for sis_suf, ctrl_suf in [("hoje", "hoje"), ("ult", "ontem"), ("antepen", "anteontem")]:
+        _set(f"sis_renal_diu_{sis_suf}", _limpar(st.session_state.get(f"ctrl_{ctrl_suf}_diurese", "")))
+        _set(f"sis_renal_bh_{sis_suf}",  _limpar(st.session_state.get(f"ctrl_{ctrl_suf}_balanco", "")))
 
-    # 2. Laboratoriais → Renal (Cr e Ur, 3 datas)
-    for sis_suf, lab_idx in [("hoje", 1), ("ult", 2), ("antepen", 3)]:
-        _set(f"sis_renal_cr_{sis_suf}", _limpar(st.session_state.get(f"lab_{lab_idx}_cr", "")))
-        _set(f"sis_renal_ur_{sis_suf}", _limpar(st.session_state.get(f"lab_{lab_idx}_ur", "")))
+    # 2. Laboratoriais → Renal (Cr, Ur, Na, K, Mg, Fos, CaI — 5 datas)
+    for sis_suf, lab_idx in [("hoje", 1), ("ult", 2), ("antepen", 3), ("ant4", 4), ("ant5", 5)]:
+        _set(f"sis_renal_cr_{sis_suf}",  _limpar(st.session_state.get(f"lab_{lab_idx}_cr", "")))
+        _set(f"sis_renal_ur_{sis_suf}",  _limpar(st.session_state.get(f"lab_{lab_idx}_ur", "")))
+        _set(f"sis_renal_na_{sis_suf}",  _limpar(st.session_state.get(f"lab_{lab_idx}_na", "")))
+        _set(f"sis_renal_k_{sis_suf}",   _limpar(st.session_state.get(f"lab_{lab_idx}_k",  "")))
+        _set(f"sis_renal_mg_{sis_suf}",  _limpar(st.session_state.get(f"lab_{lab_idx}_mg", "")))
+        _set(f"sis_renal_fos_{sis_suf}", _limpar(st.session_state.get(f"lab_{lab_idx}_pi", "")))
+        _set(f"sis_renal_cai_{sis_suf}", _limpar(st.session_state.get(f"lab_{lab_idx}_cai","")))
 
-    # 2b. Laboratoriais (hoje) → Renal: pills de eletrólitos (Na, K, Mg, Fos, CaI)
-    # Na <135 hipo, >145 hiper | K <3.5 hipo, >5 hiper | Mg <1.5 hipo, >2.2 hiper
-    # Fos <2.0 hipo, >4.5 hiper | CaI <1.1 hipo, >1.3 hiper
-    _MAP_ELETROLITO = {
-        ("sis_renal_sodio", "lab_1_na", 135, 145): ("Hiponatremia", "Normal", "Hipernatremia"),
-        ("sis_renal_potassio", "lab_1_k", 3.5, 5): ("Hipocalemia", "Normal", "Hipercalemia"),
-        ("sis_renal_magnesio", "lab_1_mg", 1.5, 2.2): ("Hipomagnesemia", "Normal", "Hipermagnesemia"),
-        ("sis_renal_fosforo", "lab_1_pi", 2.0, 4.5): ("Hipofosfatemia", "Normal", "Hiperfosfatemia"),
-        ("sis_renal_calcio", "lab_1_cai", 1.1, 1.3): ("Hipocalcemia", "Normal", "Hipercalcemia"),
-    }
-    for (sis_key, lab_key, lim_hipo, lim_hiper), (label_hipo, _label_norm, label_hiper) in _MAP_ELETROLITO.items():
-        val = _parse_num(st.session_state.get(lab_key, ""))
-        status = _eletrolito_status(val, lim_hipo, lim_hiper)
-        if status == "hipo":
-            _set(sis_key, label_hipo)
-        elif status == "hiper":
-            _set(sis_key, label_hiper)
-        # normal: não preenche (sem botão Normal nos pills)
-
-    # 3. Antibióticos atuais → Infeccioso (nomes 1, 2, 3 — na ordem, status Atual)
+    # 3. Antibióticos atuais → Infeccioso (nomes 1, 2, 3 — status Atual)
     ordem_atb = st.session_state.get("atb_ordem", list(range(1, 9)))
     atuais = [st.session_state.get(f"atb_{idx}_nome", "") for idx in ordem_atb
               if st.session_state.get(f"atb_{idx}_status") == "Atual"]
@@ -533,16 +600,49 @@ if st.session_state.pop("_completar_blocos_sistemas", False):
         _set(f"sis_infec_cult_{i}_sitio", sitio)
         _set(f"sis_infec_cult_{i}_data",  data)
 
-    # 5. Laboratoriais → Infeccioso (PCR e Leucócitos, 3 datas)
-    for sis_suf, lab_idx in [("hoje", 1), ("ult", 2), ("antepen", 3)]:
+    # 5. Laboratoriais → Infeccioso (PCR, Leucócitos, VHS — 5 datas)
+    for sis_suf, lab_idx in [("hoje", 1), ("ult", 2), ("antepen", 3), ("ant4", 4), ("ant5", 5)]:
         _set(f"sis_infec_pcr_{sis_suf}",  _limpar(st.session_state.get(f"lab_{lab_idx}_pcr", "")))
         _set(f"sis_infec_leuc_{sis_suf}", _limpar_leuco(st.session_state.get(f"lab_{lab_idx}_leuco", "")))
+        _set(f"sis_infec_vhs_{sis_suf}",  _limpar(st.session_state.get(f"lab_{lab_idx}_vhs", "")))
 
-    # 6. Laboratoriais → Hematológico (Hb, Plaq, INR, 3 datas)
-    for sis_suf, lab_idx in [("hoje", 1), ("ult", 2), ("antepen", 3)]:
-        _set(f"sis_hemato_hb_{sis_suf}",   _limpar(st.session_state.get(f"lab_{lab_idx}_hb", "")))
+    # 6. Laboratoriais → Hematológico (Hb, Plaq, INR, TTPa — 5 datas)
+    def _extrair_ttpa(v):
+        """Extrai valor entre parênteses do TTPa (ex: '39,6s (1,41)' → '1,41'). Retorna valor original se sem parênteses."""
+        s = str(v or "").strip()
+        if "(" in s and ")" in s:
+            return s.split("(")[1].split(")")[0].strip()
+        return _limpar(s)
+
+    for sis_suf, lab_idx in [("hoje", 1), ("ult", 2), ("antepen", 3), ("ant4", 4), ("ant5", 5)]:
+        _set(f"sis_hemato_hb_{sis_suf}",   _limpar(st.session_state.get(f"lab_{lab_idx}_hb",   "")))
         _set(f"sis_hemato_plaq_{sis_suf}", _limpar(st.session_state.get(f"lab_{lab_idx}_plaq", "")))
-        _set(f"sis_hemato_inr_{sis_suf}",  _extrair_inr(st.session_state.get(f"lab_{lab_idx}_tp", "")))
+        _set(f"sis_hemato_inr_{sis_suf}",  _extrair_inr(st.session_state.get(f"lab_{lab_idx}_tp",   "")))
+        _set(f"sis_hemato_ttpa_{sis_suf}", _extrair_ttpa(st.session_state.get(f"lab_{lab_idx}_ttpa","")))
+
+    # 7. Laboratoriais → TGI/Gastro (TGO, TGP, FAL, GGT, BT — 5 datas)
+    for sis_suf, lab_idx in [("hoje", 1), ("ult", 2), ("antepen", 3), ("ant4", 4), ("ant5", 5)]:
+        _set(f"sis_gastro_tgo_{sis_suf}", _limpar(st.session_state.get(f"lab_{lab_idx}_tgo", "")))
+        _set(f"sis_gastro_tgp_{sis_suf}", _limpar(st.session_state.get(f"lab_{lab_idx}_tgp", "")))
+        _set(f"sis_gastro_fal_{sis_suf}", _limpar(st.session_state.get(f"lab_{lab_idx}_fal", "")))
+        _set(f"sis_gastro_ggt_{sis_suf}", _limpar(st.session_state.get(f"lab_{lab_idx}_ggt", "")))
+        _set(f"sis_gastro_bt_{sis_suf}",  _limpar(st.session_state.get(f"lab_{lab_idx}_bt",  "")))
+
+    # 8. Laboratoriais → Cardiológico (Troponina e Lactato — 5 slots)
+    for sis_suf, lab_idx in [("hoje", 1), ("ult", 2), ("antepen", 3), ("ant4", 4), ("ant5", 5)]:
+        _set(f"sis_cardio_trop_{sis_suf}", _limpar(st.session_state.get(f"lab_{lab_idx}_trop", "")))
+        # Lactato: usa primeiro gas disponível do dia (gas > gas2 > gas3)
+        _lac = ""
+        for _gn in ["gas", "gas2", "gas3"]:
+            _v = _limpar(st.session_state.get(f"lab_{lab_idx}_{_gn}_lac", ""))
+            if _v:
+                _lac = _v
+                break
+        _set(f"sis_cardio_lac_{sis_suf}", _lac)
+
+    # 9. Laboratoriais → Pele/Musculoesquelético (CPK — 5 datas)
+    for sis_suf, lab_idx in [("hoje", 1), ("ult", 2), ("antepen", 3), ("ant4", 4), ("ant5", 5)]:
+        _set(f"sis_pele_cpk_{sis_suf}", _limpar(st.session_state.get(f"lab_{lab_idx}_cpk", "")))
 
     st.session_state["_agent_staging"] = staging
     if _cnt[0]:
@@ -581,8 +681,6 @@ with c_head_1:
 
 with c_head_2:
     if st.button("📋 Copiar Texto", use_container_width=True, help="Copia o prontuário completo (gerado pelo modelo determinístico) para a área de transferência"):
-        import json
-        import streamlit.components.v1 as components
         texto = st.session_state.get("texto_final_gerado", "")
         if texto:
             components.html(

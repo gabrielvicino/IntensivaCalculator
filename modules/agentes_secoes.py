@@ -6,7 +6,8 @@ import json
 import re
 import streamlit as st
 from openai import OpenAI
-import google.generativeai as genai
+from google import genai as _genai_new
+from google.genai import types as _genai_types
 
 
 def _extrair_json(texto: str) -> dict | None:
@@ -29,8 +30,17 @@ def _extrair_json(texto: str) -> dict | None:
         return None
 
 
+_REGRA_DATA = """
+# REGRA GLOBAL DE DATAS
+- Ano padrão: se o ano não estiver explícito no texto, use sempre 2026. Ex: "04/03" → "04/03/2026"; "04/03/26" → "04/03/2026".
+- Formato de saída de datas: DD/MM/AAAA (4 dígitos no ano). Nunca retorne datas com 2 dígitos no ano.
+- Se outro ano estiver explícito no texto (ex: 2024, 2025), use o ano mencionado.
+"""
+
+
 def _chamar_ia(prompt_system: str, texto: str, api_key: str, provider: str, modelo: str) -> dict:
     """Helper: envia texto para a IA e retorna JSON parseado."""
+    prompt_system = prompt_system + _REGRA_DATA
     try:
         if "OpenAI" in provider or "GPT" in provider:
             client = OpenAI(api_key=api_key)
@@ -44,12 +54,16 @@ def _chamar_ia(prompt_system: str, texto: str, api_key: str, provider: str, mode
             )
             return json.loads(resp.choices[0].message.content)
         else:
-            genai.configure(api_key=api_key)
-            model = genai.GenerativeModel(
-                model_name=modelo if modelo.startswith("gemini") else "gemini-2.5-flash",
-                system_instruction=prompt_system
+            _modelo = modelo if modelo.startswith("gemini") else "gemini-2.5-pro-preview-05-06"
+            client = _genai_new.Client(api_key=api_key)
+            resp = client.models.generate_content(
+                model=_modelo,
+                contents=f"TEXTO DA SEÇÃO:\n\n{texto}",
+                config=_genai_types.GenerateContentConfig(
+                    system_instruction=prompt_system,
+                    temperature=0.0,
+                ),
             )
-            resp = model.generate_content(f"TEXTO DA SEÇÃO:\n\n{texto}")
             txt = (resp.text or "").replace("```json", "").replace("```", "").strip()
             parsed = _extrair_json(txt)
             if parsed is not None:
@@ -104,6 +118,29 @@ Extraia exatamente as seguintes chaves JSON:
 - pps (string): Valor do Palliative Performance Scale (PPS). Retornar o valor como string (ex: "80%", "80"). Se ausente, null.
 - cfs (string): Valor da Clinical Frailty Scale (Escala de Fragilidade Clínica). Retornar o valor como string (ex: "3", "5 - Levemente frágil"). Se ausente, null.
 - paliativo (boolean): O paciente está em cuidados paliativos, conforto ou sem medidas de ressuscitação? true se mencionado explicitamente, false se explicitamente negado, null se não mencionado.
+
+# EXEMPLO DE SAÍDA PERFEITA
+{
+  "nome": "Maria Aparecida da Silva",
+  "idade": 68,
+  "sexo": "Feminino",
+  "prontuario": "12345678",
+  "leito": "206A",
+  "origem": "PS",
+  "equipe": "Clínica Médica - Intensivismo",
+  "departamento": "UTI Adulto",
+  "interconsultora": "Nefrologia",
+  "di_hosp": "20/02/2026",
+  "di_uti": "21/02/2026",
+  "di_enf": null,
+  "saps3": 72,
+  "sofa_adm": 10,
+  "sofa_atual": 6,
+  "mrs": "2",
+  "pps": "60%",
+  "cfs": "4 - Vulnerável",
+  "paliativo": true
+}
 </VARIAVEIS>"""
 
 def preencher_identificacao(texto, api_key, provider, modelo):
@@ -212,6 +249,46 @@ Extraia exatamente as seguintes chaves JSON, gerando-as nesta exata ordem:
 - diag_resolv_2_obs (string): Resumo do desfecho do resolvido 2.
 - diag_resolv_3_obs (string): Resumo do desfecho do resolvido 3.
 - diag_resolv_4_obs (string): Resumo do desfecho do resolvido 4.
+
+# EXEMPLO DE SAÍDA PERFEITA
+{
+  "diag_atual_1_nome": "Choque Séptico",
+  "diag_atual_2_nome": "Pneumonia Associada à Ventilação Mecânica",
+  "diag_atual_3_nome": "Lesão Renal Aguda",
+  "diag_atual_4_nome": "Fibrilação Atrial com Alta Resposta Ventricular",
+  "diag_atual_1_class": "Foco Pulmonar",
+  "diag_atual_2_class": "HAPV",
+  "diag_atual_3_class": "KDIGO 2",
+  "diag_atual_4_class": "",
+  "diag_atual_1_data": "21/02/2026",
+  "diag_atual_2_data": "23/02/2026",
+  "diag_atual_3_data": "21/02/2026",
+  "diag_atual_4_data": "22/02/2026",
+  "diag_atual_1_obs": "Admitida em choque séptico com foco pulmonar provável. Iniciado suporte vasopressor e antibioticoterapia empírica. Evolução com melhora parcial do vasopressor após 48h.",
+  "diag_atual_2_obs": "Critério radiológico e microbiológico. Cultura de aspirado traqueal coletada em 23/02/2026 com isolamento de K. pneumoniae KPC+.",
+  "diag_atual_3_obs": "Oligúria nas primeiras 24h. Creatinina de base 1.1, pico de 3.4. Em acompanhamento com nefrologia.",
+  "diag_atual_4_obs": "Revertida com amiodarona IV. Mantém ritmo sinusal desde 22/02/2026.",
+  "diag_resolv_1_nome": "Hipopotassemia",
+  "diag_resolv_2_nome": "Hipotermia",
+  "diag_resolv_3_nome": "",
+  "diag_resolv_4_nome": "",
+  "diag_resolv_1_class": "",
+  "diag_resolv_2_class": "",
+  "diag_resolv_3_class": "",
+  "diag_resolv_4_class": "",
+  "diag_resolv_1_data_inicio": "20/02/2026",
+  "diag_resolv_1_data_fim": "22/02/2026",
+  "diag_resolv_2_data_inicio": "20/02/2026",
+  "diag_resolv_2_data_fim": "21/02/2026",
+  "diag_resolv_3_data_inicio": "",
+  "diag_resolv_3_data_fim": "",
+  "diag_resolv_4_data_inicio": "",
+  "diag_resolv_4_data_fim": "",
+  "diag_resolv_1_obs": "Reposta 120 mEq IV. Corrigida.",
+  "diag_resolv_2_obs": "Temperatura mínima de 34.8°C na admissão. Reaquecimento com manta térmica.",
+  "diag_resolv_3_obs": "",
+  "diag_resolv_4_obs": ""
+}
 </VARIAVEIS>"""
 
 
@@ -309,6 +386,36 @@ Extraia exatamente as seguintes chaves JSON, gerando-as nesta exata ordem:
 - comorbidade_8_class (string): Estadiamento da 8ª comorbidade.
 - comorbidade_9_class (string): Estadiamento da 9ª comorbidade.
 - comorbidade_10_class (string): Estadiamento da 10ª comorbidade.
+
+# EXEMPLO DE SAÍDA PERFEITA
+{
+  "etilismo": "Ausente",
+  "etilismo_obs": "",
+  "tabagismo": "Presente",
+  "tabagismo_obs": "40 anos-maço, ex-tabagista há 5 anos",
+  "spa": "Ausente",
+  "spa_obs": "",
+  "comorbidade_1_nome": "Hipertensão Arterial Sistêmica",
+  "comorbidade_2_nome": "Diabetes Mellitus Tipo 2",
+  "comorbidade_3_nome": "Doença Renal Crônica",
+  "comorbidade_4_nome": "Fibrilação Atrial Crônica",
+  "comorbidade_5_nome": "Insuficiência Cardíaca",
+  "comorbidade_6_nome": "Hipotireoidismo",
+  "comorbidade_7_nome": "Obesidade",
+  "comorbidade_8_nome": "",
+  "comorbidade_9_nome": "",
+  "comorbidade_10_nome": "",
+  "comorbidade_1_class": "Estágio 3",
+  "comorbidade_2_class": "Mal controlada, HbA1c 10.2%",
+  "comorbidade_3_class": "CKD G3b",
+  "comorbidade_4_class": "CHADS2-VASc 5",
+  "comorbidade_5_class": "NYHA II, FE 45%",
+  "comorbidade_6_class": "",
+  "comorbidade_7_class": "IMC 34.2 kg/m²",
+  "comorbidade_8_class": "",
+  "comorbidade_9_class": "",
+  "comorbidade_10_class": ""
+}
 </VARIAVEIS>"""
 
 
@@ -445,6 +552,73 @@ Extraia exatamente as seguintes chaves JSON, gerando-as nesta exata ordem:
 - med_dom_18_freq (string): Frequência da 18ª medicação.
 - med_dom_19_freq (string): Frequência da 19ª medicação.
 - med_dom_20_freq (string): Frequência da 20ª medicação.
+
+# EXEMPLO DE SAÍDA PERFEITA
+{
+  "adesao_global": "Uso Regular",
+  "alergia": "Presente",
+  "alergia_obs": "Penicilina, Sulfa",
+  "med_dom_1_nome": "Enalapril",
+  "med_dom_2_nome": "Metformina",
+  "med_dom_3_nome": "Glibenclamida",
+  "med_dom_4_nome": "Acido Acetilsalicilico",
+  "med_dom_5_nome": "Sinvastatina",
+  "med_dom_6_nome": "Levotiroxina",
+  "med_dom_7_nome": "Carvedilol",
+  "med_dom_8_nome": "Furosemida",
+  "med_dom_9_nome": "Espironolactona",
+  "med_dom_10_nome": "Apixabana",
+  "med_dom_11_nome": "",
+  "med_dom_12_nome": "",
+  "med_dom_13_nome": "",
+  "med_dom_14_nome": "",
+  "med_dom_15_nome": "",
+  "med_dom_16_nome": "",
+  "med_dom_17_nome": "",
+  "med_dom_18_nome": "",
+  "med_dom_19_nome": "",
+  "med_dom_20_nome": "",
+  "med_dom_1_dose": "10mg",
+  "med_dom_2_dose": "850mg",
+  "med_dom_3_dose": "5mg",
+  "med_dom_4_dose": "100mg",
+  "med_dom_5_dose": "40mg",
+  "med_dom_6_dose": "50mcg",
+  "med_dom_7_dose": "25mg",
+  "med_dom_8_dose": "40mg",
+  "med_dom_9_dose": "25mg",
+  "med_dom_10_dose": "2.5mg",
+  "med_dom_11_dose": "",
+  "med_dom_12_dose": "",
+  "med_dom_13_dose": "",
+  "med_dom_14_dose": "",
+  "med_dom_15_dose": "",
+  "med_dom_16_dose": "",
+  "med_dom_17_dose": "",
+  "med_dom_18_dose": "",
+  "med_dom_19_dose": "",
+  "med_dom_20_dose": "",
+  "med_dom_1_freq": "12/12h",
+  "med_dom_2_freq": "1 comprimido manhã e noite",
+  "med_dom_3_freq": "1x ao dia",
+  "med_dom_4_freq": "1x ao dia",
+  "med_dom_5_freq": "ao deitar",
+  "med_dom_6_freq": "1x ao dia (jejum)",
+  "med_dom_7_freq": "12/12h",
+  "med_dom_8_freq": "1x ao dia",
+  "med_dom_9_freq": "1x ao dia",
+  "med_dom_10_freq": "12/12h",
+  "med_dom_11_freq": "",
+  "med_dom_12_freq": "",
+  "med_dom_13_freq": "",
+  "med_dom_14_freq": "",
+  "med_dom_15_freq": "",
+  "med_dom_16_freq": "",
+  "med_dom_17_freq": "",
+  "med_dom_18_freq": "",
+  "med_dom_19_freq": "",
+  "med_dom_20_freq": ""
+}
 </VARIAVEIS>"""
 
 
@@ -542,7 +716,16 @@ PADRONIZAÇÃO LINGUÍSTICA
 FORMATO DE SAÍDA
 - Retornar apenas o texto reescrito.
 - Não incluir comentários, explicações ou títulos adicionais.
-- Texto contínuo, pronto para colar no prontuário."""
+- Texto contínuo, pronto para colar no prontuário.
+
+════════════════════════════
+EXEMPLO DE SAÍDA PERFEITA
+
+Entrada (bruta, colada):
+"paciente maria 68a chegou no ps com dispneia ha 3 dias foi ao upa 2 dias atras fez raio x no upa que mostrou pneumonia foi tratada com amox mas nao melhorou. hx de dm2 e has. pioro da dispneia e febre 38.8 no dia de hoje acompanhante relata queda em casa e contusao"
+
+Saída (reescrita):
+Paciente do sexo feminino, 68 anos, diabética e hipertensa, com queixa de dispneia há três dias. Atendida em UPA há dois dias, onde realizou radiografia de tórax com laudo de pneumonia, iniciando amoxicilina — sem melhora clínica. No dia atual, apresenta piora da dispneia e febre de 38,8°C, sendo trazida ao PS. Acompanhante refere episódio de queda domiciliar com contusão não especificada."""
 
 def preencher_hmpa(texto, api_key, provider, modelo):
     if not texto or not texto.strip():
@@ -560,13 +743,17 @@ def preencher_hmpa(texto, api_key, provider, modelo):
             )
             reescrito = resp.choices[0].message.content.strip()
         else:
-            genai.configure(api_key=api_key)
-            model = genai.GenerativeModel(
-                model_name=modelo if modelo.startswith("gemini") else "gemini-2.5-flash",
-                system_instruction=_PROMPT_HMPA
+            _modelo = modelo if modelo.startswith("gemini") else "gemini-2.5-pro-preview-05-06"
+            client = _genai_new.Client(api_key=api_key)
+            resp = client.models.generate_content(
+                model=_modelo,
+                contents=f"Texto Original:\n\n{texto}",
+                config=_genai_types.GenerateContentConfig(
+                    system_instruction=_PROMPT_HMPA,
+                    temperature=0.0,
+                ),
             )
-            resp = model.generate_content(f"Texto Original:\n\n{texto}")
-            reescrito = resp.text.strip()
+            reescrito = (resp.text or "").strip()
 
         return {"hmpa_reescrito": reescrito}
 
@@ -661,6 +848,50 @@ Extraia exatamente as seguintes chaves JSON, gerando-as nesta exata ordem:
 - disp_6_status (string): Status do 6º dispositivo.
 - disp_7_status (string): Status do 7º dispositivo.
 - disp_8_status (string): Status do 8º dispositivo.
+
+# EXEMPLO DE SAÍDA PERFEITA
+{
+  "disp_1_nome": "TOT",
+  "disp_2_nome": "CVC",
+  "disp_3_nome": "PAM",
+  "disp_4_nome": "SVD",
+  "disp_5_nome": "SNE",
+  "disp_6_nome": "CVC",
+  "disp_7_nome": "",
+  "disp_8_nome": "",
+  "disp_1_local": "fixado em 23 cm na rima labial",
+  "disp_2_local": "Jugular Interna Direita",
+  "disp_3_local": "Radial Esquerda",
+  "disp_4_local": "Vesical",
+  "disp_5_local": "Posição confirmada por RX",
+  "disp_6_local": "Femoral Esquerda (removido)",
+  "disp_7_local": "",
+  "disp_8_local": "",
+  "disp_1_data_in": "21/02/2026",
+  "disp_2_data_in": "21/02/2026",
+  "disp_3_data_in": "21/02/2026",
+  "disp_4_data_in": "21/02/2026",
+  "disp_5_data_in": "22/02/2026",
+  "disp_6_data_in": "20/02/2026",
+  "disp_7_data_in": "",
+  "disp_8_data_in": "",
+  "disp_1_data_out": "",
+  "disp_2_data_out": "",
+  "disp_3_data_out": "",
+  "disp_4_data_out": "",
+  "disp_5_data_out": "",
+  "disp_6_data_out": "22/02/2026",
+  "disp_7_data_out": "",
+  "disp_8_data_out": "",
+  "disp_1_status": "Ativo",
+  "disp_2_status": "Ativo",
+  "disp_3_status": "Ativo",
+  "disp_4_status": "Ativo",
+  "disp_5_status": "Ativo",
+  "disp_6_status": "Removido",
+  "disp_7_status": "",
+  "disp_8_status": ""
+}
 </VARIAVEIS>"""
 
 
@@ -794,6 +1025,67 @@ Extraia exatamente as seguintes chaves JSON, gerando-as nesta exata ordem:
 
 # --- NOTAS ADICIONAIS ---
 - culturas_notas (string): Qualquer observação relevante geral sobre as culturas que não coube nos campos acima. Se não houver, "".
+
+# EXEMPLO DE SAÍDA PERFEITA
+{
+  "cult_1_sitio": "Aspirado Traqueal",
+  "cult_2_sitio": "Hemocultura",
+  "cult_3_sitio": "Hemocultura",
+  "cult_4_sitio": "Urocultura",
+  "cult_5_sitio": "",
+  "cult_6_sitio": "",
+  "cult_7_sitio": "",
+  "cult_8_sitio": "",
+  "cult_1_data_coleta": "23/02/2026",
+  "cult_2_data_coleta": "21/02/2026",
+  "cult_3_data_coleta": "21/02/2026",
+  "cult_4_data_coleta": "23/02/2026",
+  "cult_5_data_coleta": "",
+  "cult_6_data_coleta": "",
+  "cult_7_data_coleta": "",
+  "cult_8_data_coleta": "",
+  "cult_1_data_resultado": "25/02/2026",
+  "cult_2_data_resultado": "24/02/2026",
+  "cult_3_data_resultado": "24/02/2026",
+  "cult_4_data_resultado": "",
+  "cult_5_data_resultado": "",
+  "cult_6_data_resultado": "",
+  "cult_7_data_resultado": "",
+  "cult_8_data_resultado": "",
+  "cult_1_status": "Positivo com Antibiograma",
+  "cult_2_status": "Negativo",
+  "cult_3_status": "Negativo",
+  "cult_4_status": "Pendente negativo",
+  "cult_5_status": "",
+  "cult_6_status": "",
+  "cult_7_status": "",
+  "cult_8_status": "",
+  "cult_1_micro": "Klebsiella pneumoniae KPC+",
+  "cult_2_micro": "",
+  "cult_3_micro": "",
+  "cult_4_micro": "",
+  "cult_5_micro": "",
+  "cult_6_micro": "",
+  "cult_7_micro": "",
+  "cult_8_micro": "",
+  "cult_1_sensib": "Sensível a Polimixina B e Ceftazidima-Avibactam. Resistente a Carbapenêmicos.",
+  "cult_2_sensib": "",
+  "cult_3_sensib": "",
+  "cult_4_sensib": "",
+  "cult_5_sensib": "",
+  "cult_6_sensib": "",
+  "cult_7_sensib": "",
+  "cult_8_sensib": "",
+  "cult_1_conduta": "",
+  "cult_2_conduta": "",
+  "cult_3_conduta": "",
+  "cult_4_conduta": "",
+  "cult_5_conduta": "",
+  "cult_6_conduta": "",
+  "cult_7_conduta": "",
+  "cult_8_conduta": "",
+  "culturas_notas": ""
+}
 </VARIAVEIS>"""
 
 
@@ -872,6 +1164,83 @@ Extraia as chaves JSON nesta ordem. Para cada antibiótico de 1 a 8, use atb_1, 
 - antibioticos_notas (string): "".
 
 Slots sem antibiótico: nome="", status="", demais campos "".
+
+# EXEMPLO DE SAÍDA PERFEITA
+{
+  "atb_1_nome": "Polimixina B",
+  "atb_1_foco": "PAV",
+  "atb_1_tipo": "Guiado por Cultura",
+  "atb_1_data_ini": "25/02/2026",
+  "atb_1_data_fim": "",
+  "atb_1_num_dias": "7",
+  "atb_1_status": "Atual",
+  "atb_1_obs": "",
+  "atb_1_conduta": "",
+  "atb_2_nome": "Ceftazidima-Avibactam",
+  "atb_2_foco": "PAV",
+  "atb_2_tipo": "Guiado por Cultura",
+  "atb_2_data_ini": "25/02/2026",
+  "atb_2_data_fim": "",
+  "atb_2_num_dias": "7",
+  "atb_2_status": "Atual",
+  "atb_2_obs": "",
+  "atb_2_conduta": "",
+  "atb_3_nome": "Meropenem",
+  "atb_3_foco": "PAV",
+  "atb_3_tipo": "Empírico",
+  "atb_3_data_ini": "21/02/2026",
+  "atb_3_data_fim": "24/02/2026",
+  "atb_3_num_dias": "4",
+  "atb_3_status": "Prévio",
+  "atb_3_obs": "Suspenso após antibiograma com resistência a carbapenêmicos.",
+  "atb_3_conduta": "",
+  "atb_4_nome": "",
+  "atb_4_foco": "",
+  "atb_4_tipo": "",
+  "atb_4_data_ini": "",
+  "atb_4_data_fim": "",
+  "atb_4_num_dias": "",
+  "atb_4_status": "",
+  "atb_4_obs": "",
+  "atb_4_conduta": "",
+  "atb_5_nome": "",
+  "atb_5_foco": "",
+  "atb_5_tipo": "",
+  "atb_5_data_ini": "",
+  "atb_5_data_fim": "",
+  "atb_5_num_dias": "",
+  "atb_5_status": "",
+  "atb_5_obs": "",
+  "atb_5_conduta": "",
+  "atb_6_nome": "",
+  "atb_6_foco": "",
+  "atb_6_tipo": "",
+  "atb_6_data_ini": "",
+  "atb_6_data_fim": "",
+  "atb_6_num_dias": "",
+  "atb_6_status": "",
+  "atb_6_obs": "",
+  "atb_6_conduta": "",
+  "atb_7_nome": "",
+  "atb_7_foco": "",
+  "atb_7_tipo": "",
+  "atb_7_data_ini": "",
+  "atb_7_data_fim": "",
+  "atb_7_num_dias": "",
+  "atb_7_status": "",
+  "atb_7_obs": "",
+  "atb_7_conduta": "",
+  "atb_8_nome": "",
+  "atb_8_foco": "",
+  "atb_8_tipo": "",
+  "atb_8_data_ini": "",
+  "atb_8_data_fim": "",
+  "atb_8_num_dias": "",
+  "atb_8_status": "",
+  "atb_8_obs": "",
+  "atb_8_conduta": "",
+  "antibioticos_notas": ""
+}
 </VARIAVEIS>"""
 
 
@@ -979,6 +1348,43 @@ Extraia exatamente as seguintes chaves JSON, gerando-as nesta exata ordem:
 
 # --- NOTAS GERAIS ---
 - complementares_notas (string): "".
+
+# EXEMPLO DE SAÍDA PERFEITA
+{
+  "comp_1_exame": "Tomografia Computadorizada de Tórax com Contraste",
+  "comp_2_exame": "Ecocardiograma Transtorácico",
+  "comp_3_exame": "Eletrocardiograma",
+  "comp_4_exame": "Radiografia de Tórax Portátil",
+  "comp_5_exame": "",
+  "comp_6_exame": "",
+  "comp_7_exame": "",
+  "comp_8_exame": "",
+  "comp_1_data": "23/02/2026",
+  "comp_2_data": "22/02/2026",
+  "comp_3_data": "21/02/2026",
+  "comp_4_data": "25/02/2026",
+  "comp_5_data": "",
+  "comp_6_data": "",
+  "comp_7_data": "",
+  "comp_8_data": "",
+  "comp_1_laudo": "Consolidação em lobo inferior direito com broncograma aéreo. Derrame pleural bilateral de pequeno volume. Sem tromboembolismo pulmonar.",
+  "comp_2_laudo": "Função ventricular esquerda preservada (FE 62%). Hipertrofia concêntrica VE leve. Derrame pericárdico ausente. Pressão de VD estimada 38 mmHg.",
+  "comp_3_laudo": "Ritmo sinusal, FC 88 bpm. Ondas T invertidas em V1-V3. Sem critérios de isquemia aguda.",
+  "comp_4_laudo": "Piora do padrão de consolidação pulmonar bilateral difuso em relação ao exame anterior.",
+  "comp_5_laudo": "",
+  "comp_6_laudo": "",
+  "comp_7_laudo": "",
+  "comp_8_laudo": "",
+  "comp_1_conduta": "",
+  "comp_2_conduta": "",
+  "comp_3_conduta": "",
+  "comp_4_conduta": "",
+  "comp_5_conduta": "",
+  "comp_6_conduta": "",
+  "comp_7_conduta": "",
+  "comp_8_conduta": "",
+  "complementares_notas": ""
+}
 </VARIAVEIS>"""
 
 
@@ -1025,9 +1431,24 @@ Ler o texto fornecido na tag <TEXTO_ALVO> e extrair os valores laboratoriais e g
 - HEPÁTICO:
   - Se o texto mostrar "BT 1,0 (0,3)", separe: `bt` = "1,0" e `bd` = "0,3".
 - COAGULAÇÃO: Manter strings literais. Ex: `tp` = "14,2s (1,10)" ou "Ativ 60% (RNI 1,5)"; `ttpa` = "30,0s (1,00)".
-- GASOMETRIA:
-  - `gas_tipo`: "Arterial" ou "Venosa".
-  - MISTA (Art + Ven na mesma data): `gas_tipo` = "Arterial". Preencha os campos arteriais normalmente. Jogue o pCO2 venoso para `gasv_pco2` e o SvO2 para `svo2`. NÃO duplique o lactato.
+- GASOMETRIA (até 3 entradas, da mais recente para a mais antiga → gas_, gas2_, gas3_):
+  PASSO A — Identifique TODAS as gasometrias do mesmo dia com seus horários.
+  PASSO B — Regra de agrupamento por par Arterial + Venosa:
+    · Diferença de horário < 2h  → PAREADA: uma entrada. `gas_tipo`="Pareada". Campos arteriais + `gasv_pco2` e `svo2` da venosa.
+    · Diferença de horário ≥ 2h  → SEPARADAS: cada uma é entrada independente. Venosa completa (sem pO2; SatO2 → svo2).
+    · Mesmo tipo (ex: 2 arteriais) → sempre entradas independentes.
+  PASSO C — Ordene da mais recente para a mais antiga e distribua:
+    · 1ª (mais recente) → `gas_*` / `gasv_pco2` / `svo2`
+    · 2ª               → `gas2_*` / `gas2v_pco2` / `gas2_svo2`
+    · 3ª (mais antiga)  → `gas3_*` / `gas3v_pco2` / `gas3_svo2`
+    · Se houver apenas 1: preencha só `gas_*`. Se houver 2: `gas_*` e `gas2_*`. Se houver 3: todas.
+  REGRAS DE TIPO:
+    · Explicitamente "arterial" → "Arterial"; explicitamente "venosa" → "Venosa".
+    · Se houver pO2 (paO2) → "Arterial".
+    · SatO2 > 82% → "Arterial" (em `gas_sat`); SatO2 ≤ 82% → "Venosa" (valor para `svo2`/`gas2_svo2`/`gas3_svo2`, `sat` vazio).
+    · `gas_tipo` / `gas2_tipo` / `gas3_tipo` aceita: "Arterial", "Venosa" ou "Pareada".
+  HORA: `gas_hora` / `gas2_hora` / `gas3_hora`: horas cheias, formato "HHh" (ex: "16h", "06h").
+    · Busque em "Recebimento material:", "Data da coleta" ou similar. Se pareada, use a hora da arterial.
 - OUTROS: Valores não mapeados nas chaves específicas (ex: PTH, TSH) devem ser concatenados na chave `outros` no formato "Exame Valor | Exame Valor".
 
 # ENTRADAS
@@ -1076,7 +1497,8 @@ Extraia exatamente as seguintes chaves JSON, gerando-as nesta exata ordem:
 - lab_1_vhs (string): VHS.
 - lab_1_tp (string): Tempo de Protrombina (TAP / RNI).
 - lab_1_ttpa (string): Tempo de Tromboplastina Parcial ativada.
-- lab_1_gas_tipo (string): "Arterial", "Venosa" ou "".
+- lab_1_gas_tipo (string): "Arterial", "Venosa", "Pareada" ou "".
+- lab_1_gas_hora (string): Hora da coleta da gasometria (horas cheias, formato "HHh", ex: "16h").
 - lab_1_gas_ph (string): pH da gasometria principal.
 - lab_1_gas_pco2 (string): pCO2 da gasometria principal.
 - lab_1_gas_po2 (string): pO2.
@@ -1089,8 +1511,40 @@ Extraia exatamente as seguintes chaves JSON, gerando-as nesta exata ordem:
 - lab_1_gas_na (string): Sódio da gasometria.
 - lab_1_gas_k (string): Potássio da gasometria.
 - lab_1_gas_cai (string): Cálcio Iônico da gasometria.
-- lab_1_gasv_pco2 (string): pCO2 venoso (se gasometria mista).
-- lab_1_svo2 (string): SvO2 (se gasometria mista).
+- lab_1_gasv_pco2 (string): pCO2 venoso (se gasometria pareada).
+- lab_1_svo2 (string): SvO2 (se gasometria pareada).
+- lab_1_gas2_tipo (string): "Arterial", "Venosa", "Pareada" ou "" (2ª gasometria mais recente do mesmo dia).
+- lab_1_gas2_hora (string): Hora da 2ª gasometria (HHh).
+- lab_1_gas2_ph (string): pH.
+- lab_1_gas2_pco2 (string): pCO2.
+- lab_1_gas2_po2 (string): pO2.
+- lab_1_gas2_hco3 (string): HCO3.
+- lab_1_gas2_be (string): Base Excess.
+- lab_1_gas2_sat (string): SatO2.
+- lab_1_gas2_lac (string): Lactato.
+- lab_1_gas2_ag (string): Anion Gap.
+- lab_1_gas2_cl (string): Cloreto.
+- lab_1_gas2_na (string): Sódio.
+- lab_1_gas2_k (string): Potássio.
+- lab_1_gas2_cai (string): Cálcio Iônico.
+- lab_1_gas2v_pco2 (string): pCO2 venoso (se 2ª gasometria for pareada).
+- lab_1_gas2_svo2 (string): SvO2 (se 2ª gasometria for pareada ou venosa).
+- lab_1_gas3_tipo (string): "Arterial", "Venosa", "Pareada" ou "" (3ª gasometria mais recente do mesmo dia).
+- lab_1_gas3_hora (string): Hora da 3ª gasometria (HHh).
+- lab_1_gas3_ph (string): pH.
+- lab_1_gas3_pco2 (string): pCO2.
+- lab_1_gas3_po2 (string): pO2.
+- lab_1_gas3_hco3 (string): HCO3.
+- lab_1_gas3_be (string): Base Excess.
+- lab_1_gas3_sat (string): SatO2.
+- lab_1_gas3_lac (string): Lactato.
+- lab_1_gas3_ag (string): Anion Gap.
+- lab_1_gas3_cl (string): Cloreto.
+- lab_1_gas3_na (string): Sódio.
+- lab_1_gas3_k (string): Potássio.
+- lab_1_gas3_cai (string): Cálcio Iônico.
+- lab_1_gas3v_pco2 (string): pCO2 venoso (se 3ª gasometria for pareada).
+- lab_1_gas3_svo2 (string): SvO2 (se 3ª gasometria for pareada ou venosa).
 - lab_1_ur_dens (string): Urina - Densidade.
 - lab_1_ur_le (string): Urina - Esterase Leucocitária.
 - lab_1_ur_nit (string): Urina - Nitrito.
@@ -1137,7 +1591,8 @@ Extraia exatamente as seguintes chaves JSON, gerando-as nesta exata ordem:
 - lab_2_vhs (string): VHS.
 - lab_2_tp (string): Tempo de Protrombina (TAP / RNI).
 - lab_2_ttpa (string): Tempo de Tromboplastina Parcial ativada.
-- lab_2_gas_tipo (string): "Arterial", "Venosa" ou "".
+- lab_2_gas_tipo (string): "Arterial", "Venosa", "Pareada" ou "".
+- lab_2_gas_hora (string): Hora da coleta da gasometria (horas cheias, formato "HHh", ex: "16h").
 - lab_2_gas_ph (string): pH da gasometria principal.
 - lab_2_gas_pco2 (string): pCO2 da gasometria principal.
 - lab_2_gas_po2 (string): pO2.
@@ -1150,8 +1605,40 @@ Extraia exatamente as seguintes chaves JSON, gerando-as nesta exata ordem:
 - lab_2_gas_na (string): Sódio da gasometria.
 - lab_2_gas_k (string): Potássio da gasometria.
 - lab_2_gas_cai (string): Cálcio Iônico da gasometria.
-- lab_2_gasv_pco2 (string): pCO2 venoso (se gasometria mista).
-- lab_2_svo2 (string): SvO2 (se gasometria mista).
+- lab_2_gasv_pco2 (string): pCO2 venoso (se gasometria pareada).
+- lab_2_svo2 (string): SvO2 (se gasometria pareada).
+- lab_2_gas2_tipo (string): "Arterial", "Venosa", "Pareada" ou "" (2ª gasometria mais recente do mesmo dia).
+- lab_2_gas2_hora (string): Hora da 2ª gasometria (HHh).
+- lab_2_gas2_ph (string): pH.
+- lab_2_gas2_pco2 (string): pCO2.
+- lab_2_gas2_po2 (string): pO2.
+- lab_2_gas2_hco3 (string): HCO3.
+- lab_2_gas2_be (string): Base Excess.
+- lab_2_gas2_sat (string): SatO2.
+- lab_2_gas2_lac (string): Lactato.
+- lab_2_gas2_ag (string): Anion Gap.
+- lab_2_gas2_cl (string): Cloreto.
+- lab_2_gas2_na (string): Sódio.
+- lab_2_gas2_k (string): Potássio.
+- lab_2_gas2_cai (string): Cálcio Iônico.
+- lab_2_gas2v_pco2 (string): pCO2 venoso (se 2ª gasometria for pareada).
+- lab_2_gas2_svo2 (string): SvO2 (se 2ª gasometria for pareada ou venosa).
+- lab_2_gas3_tipo (string): "Arterial", "Venosa", "Pareada" ou "" (3ª gasometria mais recente do mesmo dia).
+- lab_2_gas3_hora (string): Hora da 3ª gasometria (HHh).
+- lab_2_gas3_ph (string): pH.
+- lab_2_gas3_pco2 (string): pCO2.
+- lab_2_gas3_po2 (string): pO2.
+- lab_2_gas3_hco3 (string): HCO3.
+- lab_2_gas3_be (string): Base Excess.
+- lab_2_gas3_sat (string): SatO2.
+- lab_2_gas3_lac (string): Lactato.
+- lab_2_gas3_ag (string): Anion Gap.
+- lab_2_gas3_cl (string): Cloreto.
+- lab_2_gas3_na (string): Sódio.
+- lab_2_gas3_k (string): Potássio.
+- lab_2_gas3_cai (string): Cálcio Iônico.
+- lab_2_gas3v_pco2 (string): pCO2 venoso (se 3ª gasometria for pareada).
+- lab_2_gas3_svo2 (string): SvO2 (se 3ª gasometria for pareada ou venosa).
 - lab_2_ur_dens (string): Urina - Densidade.
 - lab_2_ur_le (string): Urina - Esterase Leucocitária.
 - lab_2_ur_nit (string): Urina - Nitrito.
@@ -1198,7 +1685,8 @@ Extraia exatamente as seguintes chaves JSON, gerando-as nesta exata ordem:
 - lab_3_vhs (string): VHS.
 - lab_3_tp (string): Tempo de Protrombina (TAP / RNI).
 - lab_3_ttpa (string): Tempo de Tromboplastina Parcial ativada.
-- lab_3_gas_tipo (string): "Arterial", "Venosa" ou "".
+- lab_3_gas_tipo (string): "Arterial", "Venosa", "Pareada" ou "".
+- lab_3_gas_hora (string): Hora da coleta da gasometria (horas cheias, formato "HHh", ex: "16h").
 - lab_3_gas_ph (string): pH da gasometria principal.
 - lab_3_gas_pco2 (string): pCO2 da gasometria principal.
 - lab_3_gas_po2 (string): pO2.
@@ -1211,8 +1699,40 @@ Extraia exatamente as seguintes chaves JSON, gerando-as nesta exata ordem:
 - lab_3_gas_na (string): Sódio da gasometria.
 - lab_3_gas_k (string): Potássio da gasometria.
 - lab_3_gas_cai (string): Cálcio Iônico da gasometria.
-- lab_3_gasv_pco2 (string): pCO2 venoso (se gasometria mista).
-- lab_3_svo2 (string): SvO2 (se gasometria mista).
+- lab_3_gasv_pco2 (string): pCO2 venoso (se gasometria pareada).
+- lab_3_svo2 (string): SvO2 (se gasometria pareada).
+- lab_3_gas2_tipo (string): "Arterial", "Venosa", "Pareada" ou "" (2ª gasometria mais recente do mesmo dia).
+- lab_3_gas2_hora (string): Hora da 2ª gasometria (HHh).
+- lab_3_gas2_ph (string): pH.
+- lab_3_gas2_pco2 (string): pCO2.
+- lab_3_gas2_po2 (string): pO2.
+- lab_3_gas2_hco3 (string): HCO3.
+- lab_3_gas2_be (string): Base Excess.
+- lab_3_gas2_sat (string): SatO2.
+- lab_3_gas2_lac (string): Lactato.
+- lab_3_gas2_ag (string): Anion Gap.
+- lab_3_gas2_cl (string): Cloreto.
+- lab_3_gas2_na (string): Sódio.
+- lab_3_gas2_k (string): Potássio.
+- lab_3_gas2_cai (string): Cálcio Iônico.
+- lab_3_gas2v_pco2 (string): pCO2 venoso (se 2ª gasometria for pareada).
+- lab_3_gas2_svo2 (string): SvO2 (se 2ª gasometria for pareada ou venosa).
+- lab_3_gas3_tipo (string): "Arterial", "Venosa", "Pareada" ou "" (3ª gasometria mais recente do mesmo dia).
+- lab_3_gas3_hora (string): Hora da 3ª gasometria (HHh).
+- lab_3_gas3_ph (string): pH.
+- lab_3_gas3_pco2 (string): pCO2.
+- lab_3_gas3_po2 (string): pO2.
+- lab_3_gas3_hco3 (string): HCO3.
+- lab_3_gas3_be (string): Base Excess.
+- lab_3_gas3_sat (string): SatO2.
+- lab_3_gas3_lac (string): Lactato.
+- lab_3_gas3_ag (string): Anion Gap.
+- lab_3_gas3_cl (string): Cloreto.
+- lab_3_gas3_na (string): Sódio.
+- lab_3_gas3_k (string): Potássio.
+- lab_3_gas3_cai (string): Cálcio Iônico.
+- lab_3_gas3v_pco2 (string): pCO2 venoso (se 3ª gasometria for pareada).
+- lab_3_gas3_svo2 (string): SvO2 (se 3ª gasometria for pareada ou venosa).
 - lab_3_ur_dens (string): Urina - Densidade.
 - lab_3_ur_le (string): Urina - Esterase Leucocitária.
 - lab_3_ur_nit (string): Urina - Nitrito.
@@ -1223,6 +1743,195 @@ Extraia exatamente as seguintes chaves JSON, gerando-as nesta exata ordem:
 - lab_3_ur_glic (string): Urina - Glicose.
 - lab_3_outros (string): Outros exames concatenados.
 - lab_3_conduta (string): "".
+
+# EXEMPLO DE SAÍDA PERFEITA
+# (3 blocos: lab_1 = hoje, lab_2 = ontem, lab_3 = anteontem)
+{
+  "laboratoriais_notas": "",
+
+  "lab_1_data": "04/03/2026",
+  "lab_1_hb": "8.4",
+  "lab_1_ht": "26",
+  "lab_1_vcm": "88",
+  "lab_1_hcm": "29",
+  "lab_1_rdw": "15.2",
+  "lab_1_leuco": "18200 (Seg 84% / Linf 8% / Bastões 6%)",
+  "lab_1_plaq": "98000",
+  "lab_1_cr": "3.4",
+  "lab_1_ur": "142",
+  "lab_1_na": "138",
+  "lab_1_k": "4.8",
+  "lab_1_mg": "1.2",
+  "lab_1_pi": "5.8",
+  "lab_1_cat": "7.8",
+  "lab_1_cai": "1.02",
+  "lab_1_tgp": "68",
+  "lab_1_tgo": "82",
+  "lab_1_fal": "210",
+  "lab_1_ggt": "195",
+  "lab_1_bt": "2.1",
+  "lab_1_bd": "1.4",
+  "lab_1_prot_tot": "5.2",
+  "lab_1_alb": "2.1",
+  "lab_1_amil": "",
+  "lab_1_lipas": "",
+  "lab_1_cpk": "320",
+  "lab_1_cpk_mb": "",
+  "lab_1_bnp": "1820",
+  "lab_1_trop": "0.08",
+  "lab_1_pcr": "188",
+  "lab_1_vhs": "",
+  "lab_1_tp": "Ativ 52% (RNI 1.6)",
+  "lab_1_ttpa": "42s (1.38)",
+  "lab_1_gas_tipo": "Arterial",
+  "lab_1_gas_hora": "6h",
+  "lab_1_gas_ph": "7.30",
+  "lab_1_gas_pco2": "38",
+  "lab_1_gas_po2": "88",
+  "lab_1_gas_hco3": "18.4",
+  "lab_1_gas_be": "-7.2",
+  "lab_1_gas_sat": "96",
+  "lab_1_gas_lac": "3.8",
+  "lab_1_gas_ag": "17.6",
+  "lab_1_gas_cl": "106",
+  "lab_1_gas_na": "139",
+  "lab_1_gas_k": "4.9",
+  "lab_1_gas_cai": "1.04",
+  "lab_1_gasv_pco2": "",
+  "lab_1_svo2": "",
+  "lab_1_ur_dens": "",
+  "lab_1_ur_le": "",
+  "lab_1_ur_nit": "",
+  "lab_1_ur_leu": "",
+  "lab_1_ur_hm": "",
+  "lab_1_ur_prot": "",
+  "lab_1_ur_cet": "",
+  "lab_1_ur_glic": "",
+  "lab_1_outros": "TSH 0.4 | HbA1c 10.2%",
+  "lab_1_conduta": "",
+
+  "lab_2_data": "03/03/2026",
+  "lab_2_hb": "9.1",
+  "lab_2_ht": "28",
+  "lab_2_vcm": "88",
+  "lab_2_hcm": "29",
+  "lab_2_rdw": "15.0",
+  "lab_2_leuco": "22400 (Seg 88% / Bastões 8%)",
+  "lab_2_plaq": "82000",
+  "lab_2_cr": "3.1",
+  "lab_2_ur": "128",
+  "lab_2_na": "140",
+  "lab_2_k": "5.2",
+  "lab_2_mg": "",
+  "lab_2_pi": "",
+  "lab_2_cat": "",
+  "lab_2_cai": "",
+  "lab_2_tgp": "72",
+  "lab_2_tgo": "91",
+  "lab_2_fal": "",
+  "lab_2_ggt": "",
+  "lab_2_bt": "1.8",
+  "lab_2_bd": "1.1",
+  "lab_2_prot_tot": "",
+  "lab_2_alb": "2.0",
+  "lab_2_amil": "",
+  "lab_2_lipas": "",
+  "lab_2_cpk": "",
+  "lab_2_cpk_mb": "",
+  "lab_2_bnp": "",
+  "lab_2_trop": "",
+  "lab_2_pcr": "241",
+  "lab_2_vhs": "",
+  "lab_2_tp": "Ativ 48% (RNI 1.8)",
+  "lab_2_ttpa": "45s (1.48)",
+  "lab_2_gas_tipo": "Arterial",
+  "lab_2_gas_hora": "8h",
+  "lab_2_gas_ph": "7.26",
+  "lab_2_gas_pco2": "35",
+  "lab_2_gas_po2": "82",
+  "lab_2_gas_hco3": "16.2",
+  "lab_2_gas_be": "-9.8",
+  "lab_2_gas_sat": "95",
+  "lab_2_gas_lac": "5.2",
+  "lab_2_gas_ag": "20.8",
+  "lab_2_gas_cl": "108",
+  "lab_2_gas_na": "140",
+  "lab_2_gas_k": "5.1",
+  "lab_2_gas_cai": "1.06",
+  "lab_2_gasv_pco2": "",
+  "lab_2_svo2": "",
+  "lab_2_ur_dens": "1018",
+  "lab_2_ur_le": "Positivo 3+",
+  "lab_2_ur_nit": "Positivo",
+  "lab_2_ur_leu": "82 p/campo",
+  "lab_2_ur_hm": "12 p/campo",
+  "lab_2_ur_prot": "Positivo 1+",
+  "lab_2_ur_cet": "Negativo",
+  "lab_2_ur_glic": "Negativo",
+  "lab_2_outros": "",
+  "lab_2_conduta": "",
+
+  "lab_3_data": "02/03/2026",
+  "lab_3_hb": "10.2",
+  "lab_3_ht": "31",
+  "lab_3_vcm": "87",
+  "lab_3_hcm": "28",
+  "lab_3_rdw": "14.8",
+  "lab_3_leuco": "28600 (Seg 90%)",
+  "lab_3_plaq": "68000",
+  "lab_3_cr": "2.2",
+  "lab_3_ur": "98",
+  "lab_3_na": "142",
+  "lab_3_k": "3.8",
+  "lab_3_mg": "",
+  "lab_3_pi": "",
+  "lab_3_cat": "",
+  "lab_3_cai": "",
+  "lab_3_tgp": "",
+  "lab_3_tgo": "",
+  "lab_3_fal": "",
+  "lab_3_ggt": "",
+  "lab_3_bt": "",
+  "lab_3_bd": "",
+  "lab_3_prot_tot": "",
+  "lab_3_alb": "",
+  "lab_3_amil": "",
+  "lab_3_lipas": "",
+  "lab_3_cpk": "",
+  "lab_3_cpk_mb": "",
+  "lab_3_bnp": "",
+  "lab_3_trop": "",
+  "lab_3_pcr": "312",
+  "lab_3_vhs": "",
+  "lab_3_tp": "",
+  "lab_3_ttpa": "",
+  "lab_3_gas_tipo": "Arterial",
+  "lab_3_gas_hora": "10h",
+  "lab_3_gas_ph": "7.22",
+  "lab_3_gas_pco2": "34",
+  "lab_3_gas_po2": "76",
+  "lab_3_gas_hco3": "14.1",
+  "lab_3_gas_be": "-12.4",
+  "lab_3_gas_sat": "92",
+  "lab_3_gas_lac": "7.1",
+  "lab_3_gas_ag": "24.9",
+  "lab_3_gas_cl": "109",
+  "lab_3_gas_na": "142",
+  "lab_3_gas_k": "3.9",
+  "lab_3_gas_cai": "1.10",
+  "lab_3_gasv_pco2": "52",
+  "lab_3_svo2": "68",
+  "lab_3_ur_dens": "",
+  "lab_3_ur_le": "",
+  "lab_3_ur_nit": "",
+  "lab_3_ur_leu": "",
+  "lab_3_ur_hm": "",
+  "lab_3_ur_prot": "",
+  "lab_3_ur_cet": "",
+  "lab_3_ur_glic": "",
+  "lab_3_outros": "",
+  "lab_3_conduta": ""
+}
 </VARIAVEIS>"""
 
 
@@ -1233,10 +1942,55 @@ def preencher_laboratoriais(texto, api_key, provider, modelo):
     if "_erro" in r:
         return r
     r.pop("_erro", None)
+
+    # Normaliza e pós-processa gas1, gas2, gas3 em cada slot (i=1,2,3)
+    # Para cada gasometria gn (1,2,3): prefixo "gas_" / "gas2_" / "gas3_"
+    # chaves especiais gas1: gasv_pco2, svo2 (legado). gas2/3: gas2v_pco2, gas2_svo2, etc.
     for i in (1, 2, 3):
-        k = f"lab_{i}_gas_tipo"
-        if k in r and r[k] in ("", None):
-            r[k] = None
+        for gn in (1, 2, 3):
+            p      = "gas"  if gn == 1 else f"gas{gn}"
+            k_tipo = f"lab_{i}_{p}_tipo"
+            k_sat  = f"lab_{i}_{p}_sat"
+            k_po2  = f"lab_{i}_{p}_po2"
+            k_svo2 = f"lab_{i}_svo2"       if gn == 1 else f"lab_{i}_{p}_svo2"
+
+            # Normaliza tipo vazio → None (compatível com st.pills)
+            if k_tipo in r and r[k_tipo] in ("", None):
+                r[k_tipo] = None
+
+            # Se tipo já é válido e explícito (Pareada, Arterial, Venosa), não inferir
+            tipo_atual = r.get(k_tipo)
+            if tipo_atual not in ("Arterial", "Venosa", "Pareada"):
+                # Infere tipo: pO2 → Arterial; SatO2 > 82% → Arterial; ≤ 82% → Venosa
+                sat_raw = r.get(k_sat, "")
+                po2_raw = r.get(k_po2, "")
+                if po2_raw:
+                    r[k_tipo] = "Arterial"
+                elif sat_raw:
+                    try:
+                        sat_num = float(str(sat_raw).replace("%", "").strip())
+                        if sat_num > 82:
+                            r[k_tipo] = "Arterial"
+                        else:
+                            r[k_tipo] = "Venosa"
+                            if not r.get(k_svo2):
+                                r[k_svo2] = sat_raw
+                            r[k_sat] = ""
+                    except (ValueError, TypeError):
+                        pass
+
+            # Garante que SatO2 ≤ 82% em venosa seja movido para SvO2
+            if r.get(k_tipo) == "Venosa":
+                sat_raw = r.get(k_sat, "")
+                if sat_raw:
+                    try:
+                        sat_num = float(str(sat_raw).replace("%", "").strip())
+                        if sat_num <= 82 and not r.get(k_svo2):
+                            r[k_svo2] = sat_raw
+                            r[k_sat] = ""
+                    except (ValueError, TypeError):
+                        pass
+
     return r
 
 
@@ -1358,6 +2112,16 @@ Extraia exatamente as seguintes chaves JSON, gerando-as nesta exata ordem:
 - sis_cardio_tec (string): Tempo de enchimento capilar (ex: "3 seg.").
 - sis_cardio_fluido_responsivo (string): Fluido-responsividade (Sim/Não/"").
 - sis_cardio_fluido_tolerante (string): Fluido-tolerância (Sim/Não/"").
+- sis_cardio_lac_ant5 (string): Lactato 5º mais antigo (mmol/L, evolução cronológica). "" se ausente.
+- sis_cardio_lac_ant4 (string): Lactato 4º. "" se ausente.
+- sis_cardio_lac_antepen (string): Lactato 3º (anteontem). "" se ausente.
+- sis_cardio_lac_ult (string): Lactato 2º (ontem). "" se ausente.
+- sis_cardio_lac_hoje (string): Lactato mais recente. "" se ausente.
+- sis_cardio_trop_ant5 (string): Troponina 5º medição anterior (ng/L ou unidade descrita). "" se ausente.
+- sis_cardio_trop_ant4 (string): Troponina 4º medição. "" se ausente.
+- sis_cardio_trop_antepen (string): Troponina anteontem. "" se ausente.
+- sis_cardio_trop_ult (string): Troponina ontem. "" se ausente.
+- sis_cardio_trop_hoje (string): Troponina atual. "" se ausente.
 - sis_cardio_dva_1_med (string): DVA 1 (ex: Noradrenalina).
 - sis_cardio_dva_1_dose (string): Dose DVA 1 (ex: "0.12 mcg/kg/min").
 - sis_cardio_dva_2_med (string): DVA 2.
@@ -1366,6 +2130,11 @@ Extraia exatamente as seguintes chaves JSON, gerando-as nesta exata ordem:
 - sis_cardio_dva_3_dose (string): Dose DVA 3.
 - sis_cardio_dva_4_med (string): DVA 4.
 - sis_cardio_dva_4_dose (string): Dose DVA 4.
+- sis_cardio_trop_ant5 (string): Troponina 5º medição anterior (ng/L ou unidade descrita). "" se ausente.
+- sis_cardio_trop_ant4 (string): Troponina 4º medição. "" se ausente.
+- sis_cardio_trop_antepen (string): Troponina anteontem. "" se ausente.
+- sis_cardio_trop_ult (string): Troponina ontem. "" se ausente.
+- sis_cardio_trop_hoje (string): Troponina atual. "" se ausente.
 - sis_cardio_pocus (string): POCUS cardíaco/VCI (ex: Função ventricular preservada). "" se ausente.
 - sis_cardio_obs (string): Observações cardiovasculares livres.
 - sis_cardio_conduta (string): "".
@@ -1375,17 +2144,51 @@ Extraia exatamente as seguintes chaves JSON, gerando-as nesta exata ordem:
 - sis_renal_balanco (string): Balanço hídrico diário com sinal (ex: "+350mL").
 - sis_renal_balanco_acum (string): Balanço hídrico acumulado (ex: "+2300mL").
 - sis_renal_volemia (string): Status volêmico (Hipovolêmico/Euvolêmico/Hipervolêmico/"").
-- sis_renal_cr_antepen (string): Creatinina anteontem.
-- sis_renal_cr_ult (string): Creatinina ontem.
-- sis_renal_cr_hoje (string): Creatinina atual.
-- sis_renal_ur_antepen (string): Ureia anteontem.
-- sis_renal_ur_ult (string): Ureia ontem.
-- sis_renal_ur_hoje (string): Ureia atual.
-- sis_renal_sodio (string): Distúrbio do sódio (Hiponatremia/Hipernatremia/""). "" se normal ou não mencionado.
-- sis_renal_potassio (string): Distúrbio do potássio (Hipocalemia/Hipercalemia/""). "" se normal ou não mencionado.
-- sis_renal_magnesio (string): Distúrbio do magnésio (Hipomagnesemia/Hipermagnesemia/""). "" se normal ou não mencionado.
-- sis_renal_fosforo (string): Distúrbio do fósforo (Hipofosfatemia/Hiperfosfatemia/""). "" se normal ou não mencionado.
-- sis_renal_calcio (string): Distúrbio do cálcio (Hipocalcemia/Hipercalcemia/""). "" se normal ou não mencionado.
+- sis_renal_cr_ant5 (string): Creatinina 5º dia anterior (mais antigo). "" se ausente.
+- sis_renal_cr_ant4 (string): Creatinina 4º dia anterior. "" se ausente.
+- sis_renal_cr_antepen (string): Creatinina anteontem. "" se ausente.
+- sis_renal_cr_ult (string): Creatinina ontem. "" se ausente.
+- sis_renal_cr_hoje (string): Creatinina atual. "" se ausente.
+- sis_renal_ur_ant5 (string): Ureia 5º dia anterior. "" se ausente.
+- sis_renal_ur_ant4 (string): Ureia 4º dia anterior. "" se ausente.
+- sis_renal_ur_antepen (string): Ureia anteontem. "" se ausente.
+- sis_renal_ur_ult (string): Ureia ontem. "" se ausente.
+- sis_renal_ur_hoje (string): Ureia atual. "" se ausente.
+- sis_renal_diu_ant5 (string): Diurese 5º dia (evolução). "" se ausente.
+- sis_renal_diu_ant4 (string): Diurese 4º dia. "" se ausente.
+- sis_renal_diu_antepen (string): Diurese anteontem. "" se ausente.
+- sis_renal_diu_ult (string): Diurese ontem. "" se ausente.
+- sis_renal_diu_hoje (string): Diurese hoje (valor numérico em mL, ex: "1800"). "" se ausente.
+- sis_renal_bh_ant5 (string): Balanço hídrico 5º dia. "" se ausente.
+- sis_renal_bh_ant4 (string): Balanço hídrico 4º dia. "" se ausente.
+- sis_renal_bh_antepen (string): Balanço hídrico anteontem. "" se ausente.
+- sis_renal_bh_ult (string): Balanço hídrico ontem. "" se ausente.
+- sis_renal_bh_hoje (string): Balanço hídrico hoje (ex: "+350"). "" se ausente.
+- sis_renal_na_ant5 (string): Sódio 5º dia (mmol/L numérico). "" se ausente.
+- sis_renal_na_ant4 (string): Sódio 4º dia. "" se ausente.
+- sis_renal_na_antepen (string): Sódio anteontem. "" se ausente.
+- sis_renal_na_ult (string): Sódio ontem. "" se ausente.
+- sis_renal_na_hoje (string): Sódio hoje. "" se ausente.
+- sis_renal_k_ant5 (string): Potássio 5º dia. "" se ausente.
+- sis_renal_k_ant4 (string): Potássio 4º dia. "" se ausente.
+- sis_renal_k_antepen (string): Potássio anteontem. "" se ausente.
+- sis_renal_k_ult (string): Potássio ontem. "" se ausente.
+- sis_renal_k_hoje (string): Potássio hoje. "" se ausente.
+- sis_renal_mg_ant5 (string): Magnésio 5º dia. "" se ausente.
+- sis_renal_mg_ant4 (string): Magnésio 4º dia. "" se ausente.
+- sis_renal_mg_antepen (string): Magnésio anteontem. "" se ausente.
+- sis_renal_mg_ult (string): Magnésio ontem. "" se ausente.
+- sis_renal_mg_hoje (string): Magnésio hoje. "" se ausente.
+- sis_renal_fos_ant5 (string): Fósforo 5º dia. "" se ausente.
+- sis_renal_fos_ant4 (string): Fósforo 4º dia. "" se ausente.
+- sis_renal_fos_antepen (string): Fósforo anteontem. "" se ausente.
+- sis_renal_fos_ult (string): Fósforo ontem. "" se ausente.
+- sis_renal_fos_hoje (string): Fósforo hoje. "" se ausente.
+- sis_renal_cai_ant5 (string): Cálcio ionizado 5º dia. "" se ausente.
+- sis_renal_cai_ant4 (string): Cálcio ionizado 4º dia. "" se ausente.
+- sis_renal_cai_antepen (string): Cálcio ionizado anteontem. "" se ausente.
+- sis_renal_cai_ult (string): Cálcio ionizado ontem. "" se ausente.
+- sis_renal_cai_hoje (string): Cálcio ionizado hoje. "" se ausente.
 - sis_renal_trs (string): Em hemodiálise/TRS (Sim/Não/"").
 - sis_renal_trs_via (string): Acesso da TRS (ex: "Cateter femoral D").
 - sis_renal_trs_ultima (string): Data/Hora da última sessão.
@@ -1418,12 +2221,21 @@ Extraia exatamente as seguintes chaves JSON, gerando-as nesta exata ordem:
 - sis_infec_cult_3_data (string): Data da coleta 3.
 - sis_infec_cult_4_sitio (string): Sítio da cultura 4.
 - sis_infec_cult_4_data (string): Data da coleta 4.
-- sis_infec_pcr_hoje (string): Valor da PCR atual.
-- sis_infec_pcr_ult (string): PCR anterior.
-- sis_infec_pcr_antepen (string): PCR antepenúltima.
-- sis_infec_leuc_antepen (string): Leucócitos anteontem.
-- sis_infec_leuc_ult (string): Leucócitos ontem.
-- sis_infec_leuc_hoje (string): Leucócitos atual.
+- sis_infec_pcr_ant5 (string): PCR 5º coleta anterior. "" se ausente.
+- sis_infec_pcr_ant4 (string): PCR 4º coleta. "" se ausente.
+- sis_infec_pcr_antepen (string): PCR antepenúltima. "" se ausente.
+- sis_infec_pcr_ult (string): PCR anterior. "" se ausente.
+- sis_infec_pcr_hoje (string): PCR atual. "" se ausente.
+- sis_infec_leuc_ant5 (string): Leucócitos 5º dia. "" se ausente.
+- sis_infec_leuc_ant4 (string): Leucócitos 4º dia. "" se ausente.
+- sis_infec_leuc_antepen (string): Leucócitos anteontem. "" se ausente.
+- sis_infec_leuc_ult (string): Leucócitos ontem. "" se ausente.
+- sis_infec_leuc_hoje (string): Leucócitos atual. "" se ausente.
+- sis_infec_vhs_ant5 (string): VHS 5º dia (mm/h). "" se ausente.
+- sis_infec_vhs_ant4 (string): VHS 4º dia. "" se ausente.
+- sis_infec_vhs_antepen (string): VHS anteontem. "" se ausente.
+- sis_infec_vhs_ult (string): VHS ontem. "" se ausente.
+- sis_infec_vhs_hoje (string): VHS atual. "" se ausente.
 - sis_infec_isolamento (string): Em isolamento (Sim/Não/"").
 - sis_infec_isolamento_tipo (string): Tipo (Contato/Aerossol/Gotícula/Reverso/"").
 - sis_infec_isolamento_motivo (string): Germe ou suspeita (ex: "K. pneumoniae KPC+").
@@ -1456,6 +2268,31 @@ Extraia exatamente as seguintes chaves JSON, gerando-as nesta exata ordem:
 - sis_gastro_evacuacao (string): Evacuação presente (Sim/Não/"").
 - sis_gastro_evacuacao_data (string): Data da última evacuação.
 - sis_gastro_evacuacao_laxativo (string): Laxativo em uso (ex: "Lactulose 10mL 8/8h"). "" se ausente.
+- sis_gastro_tgo_ant5 (string): TGO 5º dia (U/L). "" se ausente.
+- sis_gastro_tgo_ant4 (string): TGO 4º dia. "" se ausente.
+- sis_gastro_tgo_antepen (string): TGO anteontem. "" se ausente.
+- sis_gastro_tgo_ult (string): TGO ontem. "" se ausente.
+- sis_gastro_tgo_hoje (string): TGO hoje. "" se ausente.
+- sis_gastro_tgp_ant5 (string): TGP 5º dia. "" se ausente.
+- sis_gastro_tgp_ant4 (string): TGP 4º dia. "" se ausente.
+- sis_gastro_tgp_antepen (string): TGP anteontem. "" se ausente.
+- sis_gastro_tgp_ult (string): TGP ontem. "" se ausente.
+- sis_gastro_tgp_hoje (string): TGP hoje. "" se ausente.
+- sis_gastro_fal_ant5 (string): FAL 5º dia. "" se ausente.
+- sis_gastro_fal_ant4 (string): FAL 4º dia. "" se ausente.
+- sis_gastro_fal_antepen (string): FAL anteontem. "" se ausente.
+- sis_gastro_fal_ult (string): FAL ontem. "" se ausente.
+- sis_gastro_fal_hoje (string): FAL hoje. "" se ausente.
+- sis_gastro_ggt_ant5 (string): GGT 5º dia. "" se ausente.
+- sis_gastro_ggt_ant4 (string): GGT 4º dia. "" se ausente.
+- sis_gastro_ggt_antepen (string): GGT anteontem. "" se ausente.
+- sis_gastro_ggt_ult (string): GGT ontem. "" se ausente.
+- sis_gastro_ggt_hoje (string): GGT hoje. "" se ausente.
+- sis_gastro_bt_ant5 (string): Bilirrubina Total 5º dia. "" se ausente.
+- sis_gastro_bt_ant4 (string): BT 4º dia. "" se ausente.
+- sis_gastro_bt_antepen (string): BT anteontem. "" se ausente.
+- sis_gastro_bt_ult (string): BT ontem. "" se ausente.
+- sis_gastro_bt_hoje (string): BT hoje. "" se ausente.
 - sis_gastro_pocus (string): POCUS abdome (ex: Ascite leve, POCUS gástrico). "" se ausente.
 - sis_gastro_obs (string): Observações gastrointestinais livres.
 - sis_gastro_conduta (string): "".
@@ -1474,15 +2311,26 @@ Extraia exatamente as seguintes chaves JSON, gerando-as nesta exata ordem:
 - sis_hemato_transf_2_bolsas (string): Quantidade 2.
 - sis_hemato_transf_3_comp (string): Componente 3.
 - sis_hemato_transf_3_bolsas (string): Quantidade 3.
-- sis_hemato_hb_antepen (string): Hb anteontem.
-- sis_hemato_hb_ult (string): Hb ontem.
-- sis_hemato_hb_hoje (string): Hb atual.
-- sis_hemato_plaq_antepen (string): Plaquetas anteontem.
-- sis_hemato_plaq_ult (string): Plaquetas ontem.
-- sis_hemato_plaq_hoje (string): Plaquetas atual.
-- sis_hemato_inr_antepen (string): INR anteontem.
-- sis_hemato_inr_ult (string): INR ontem.
-- sis_hemato_inr_hoje (string): INR atual.
+- sis_hemato_hb_ant5 (string): Hb 5º dia. "" se ausente.
+- sis_hemato_hb_ant4 (string): Hb 4º dia. "" se ausente.
+- sis_hemato_hb_antepen (string): Hb anteontem. "" se ausente.
+- sis_hemato_hb_ult (string): Hb ontem. "" se ausente.
+- sis_hemato_hb_hoje (string): Hb atual. "" se ausente.
+- sis_hemato_plaq_ant5 (string): Plaquetas 5º dia. "" se ausente.
+- sis_hemato_plaq_ant4 (string): Plaquetas 4º dia. "" se ausente.
+- sis_hemato_plaq_antepen (string): Plaquetas anteontem. "" se ausente.
+- sis_hemato_plaq_ult (string): Plaquetas ontem. "" se ausente.
+- sis_hemato_plaq_hoje (string): Plaquetas atual. "" se ausente.
+- sis_hemato_inr_ant5 (string): INR 5º dia. "" se ausente.
+- sis_hemato_inr_ant4 (string): INR 4º dia. "" se ausente.
+- sis_hemato_inr_antepen (string): INR anteontem. "" se ausente.
+- sis_hemato_inr_ult (string): INR ontem. "" se ausente.
+- sis_hemato_inr_hoje (string): INR atual. "" se ausente.
+- sis_hemato_ttpa_ant5 (string): TTPa 5º dia — extrair valor do parêntese se presente (ex: "39,6s (1,41)" → "1,41"). "" se ausente.
+- sis_hemato_ttpa_ant4 (string): TTPa 4º dia. "" se ausente.
+- sis_hemato_ttpa_antepen (string): TTPa anteontem. "" se ausente.
+- sis_hemato_ttpa_ult (string): TTPa ontem. "" se ausente.
+- sis_hemato_ttpa_hoje (string): TTPa atual. "" se ausente.
 - sis_hemato_pocus (string): POCUS hematológico (ex: TVP, Derrame pleural). "" se ausente.
 - sis_hemato_obs (string): Observações hematológicas livres.
 - sis_hemato_conduta (string): "".
@@ -1498,6 +2346,11 @@ Extraia exatamente as seguintes chaves JSON, gerando-as nesta exata ordem:
 - sis_pele_lpp_local_3 (string): Local da lesão 3.
 - sis_pele_lpp_grau_3 (string): Grau da lesão 3.
 - sis_pele_polineuropatia (string): Polineuropatia do doente crítico (Sim/Não/"").
+- sis_pele_cpk_ant5 (string): CPK 5º dia (U/L). "" se ausente.
+- sis_pele_cpk_ant4 (string): CPK 4º dia. "" se ausente.
+- sis_pele_cpk_antepen (string): CPK anteontem. "" se ausente.
+- sis_pele_cpk_ult (string): CPK ontem. "" se ausente.
+- sis_pele_cpk_hoje (string): CPK atual. "" se ausente.
 - sis_pele_pocus (string): POCUS tecidos moles. "" se ausente.
 - sis_pele_obs (string): Observações de feridas/curativos livres.
 - sis_pele_conduta (string): "".
@@ -1533,7 +2386,9 @@ Retorne EXATAMENTE este JSON com todos os campos. Campos ausentes = "". Inteiros
   "sis_resp_pocus": "", "sis_resp_obs": "", "sis_resp_conduta": "",
 
   "sis_cardio_fc": "", "sis_cardio_cardioscopia": "", "sis_cardio_pam": "",
-  "sis_cardio_exame_cardio": "", "sis_cardio_perfusao": "", "sis_cardio_tec": "", "sis_cardio_fluido_responsivo": "", "sis_cardio_fluido_tolerante": "",
+  "sis_cardio_exame_cardio": "", "sis_cardio_perfusao": "", "sis_cardio_tec": "",   "sis_cardio_fluido_responsivo": "", "sis_cardio_fluido_tolerante": "",
+  "sis_cardio_lac_ant5": "", "sis_cardio_lac_ant4": "", "sis_cardio_lac_antepen": "", "sis_cardio_lac_ult": "", "sis_cardio_lac_hoje": "",
+  "sis_cardio_trop_ant5": "", "sis_cardio_trop_ant4": "", "sis_cardio_trop_antepen": "", "sis_cardio_trop_ult": "", "sis_cardio_trop_hoje": "",
   "sis_cardio_dva_1_med": "", "sis_cardio_dva_1_dose": "",
   "sis_cardio_dva_2_med": "", "sis_cardio_dva_2_dose": "",
   "sis_cardio_dva_3_med": "", "sis_cardio_dva_3_dose": "",
@@ -1541,9 +2396,15 @@ Retorne EXATAMENTE este JSON com todos os campos. Campos ausentes = "". Inteiros
   "sis_cardio_pocus": "", "sis_cardio_obs": "", "sis_cardio_conduta": "",
 
   "sis_renal_diurese": "", "sis_renal_balanco": "", "sis_renal_balanco_acum": "", "sis_renal_volemia": "",
-  "sis_renal_cr_antepen": "", "sis_renal_cr_ult": "", "sis_renal_cr_hoje": "",
-  "sis_renal_ur_antepen": "", "sis_renal_ur_ult": "", "sis_renal_ur_hoje": "",
-  "sis_renal_sodio": "", "sis_renal_potassio": "", "sis_renal_magnesio": "", "sis_renal_fosforo": "", "sis_renal_calcio": "",
+  "sis_renal_cr_ant5": "", "sis_renal_cr_ant4": "", "sis_renal_cr_antepen": "", "sis_renal_cr_ult": "", "sis_renal_cr_hoje": "",
+  "sis_renal_ur_ant5": "", "sis_renal_ur_ant4": "", "sis_renal_ur_antepen": "", "sis_renal_ur_ult": "", "sis_renal_ur_hoje": "",
+  "sis_renal_diu_ant5": "", "sis_renal_diu_ant4": "", "sis_renal_diu_antepen": "", "sis_renal_diu_ult": "", "sis_renal_diu_hoje": "",
+  "sis_renal_bh_ant5": "", "sis_renal_bh_ant4": "", "sis_renal_bh_antepen": "", "sis_renal_bh_ult": "", "sis_renal_bh_hoje": "",
+  "sis_renal_na_ant5": "", "sis_renal_na_ant4": "", "sis_renal_na_antepen": "", "sis_renal_na_ult": "", "sis_renal_na_hoje": "",
+  "sis_renal_k_ant5": "", "sis_renal_k_ant4": "", "sis_renal_k_antepen": "", "sis_renal_k_ult": "", "sis_renal_k_hoje": "",
+  "sis_renal_mg_ant5": "", "sis_renal_mg_ant4": "", "sis_renal_mg_antepen": "", "sis_renal_mg_ult": "", "sis_renal_mg_hoje": "",
+  "sis_renal_fos_ant5": "", "sis_renal_fos_ant4": "", "sis_renal_fos_antepen": "", "sis_renal_fos_ult": "", "sis_renal_fos_hoje": "",
+  "sis_renal_cai_ant5": "", "sis_renal_cai_ant4": "", "sis_renal_cai_antepen": "", "sis_renal_cai_ult": "", "sis_renal_cai_hoje": "",
   "sis_renal_trs": "", "sis_renal_trs_via": "", "sis_renal_trs_ultima": "", "sis_renal_trs_proxima": "",
   "sis_renal_pocus": "", "sis_renal_obs": "", "sis_renal_conduta": "",
   "sis_metab_obs": "", "sis_metab_pocus": "", "sis_metab_conduta": "",
@@ -1557,8 +2418,9 @@ Retorne EXATAMENTE este JSON com todos os campos. Campos ausentes = "". Inteiros
   "sis_infec_cult_2_sitio": "", "sis_infec_cult_2_data": "",
   "sis_infec_cult_3_sitio": "", "sis_infec_cult_3_data": "",
   "sis_infec_cult_4_sitio": "", "sis_infec_cult_4_data": "",
-  "sis_infec_pcr_hoje": "", "sis_infec_pcr_ult": "", "sis_infec_pcr_antepen": "",
-  "sis_infec_leuc_antepen": "", "sis_infec_leuc_ult": "", "sis_infec_leuc_hoje": "",
+  "sis_infec_pcr_ant5": "", "sis_infec_pcr_ant4": "", "sis_infec_pcr_antepen": "", "sis_infec_pcr_ult": "", "sis_infec_pcr_hoje": "",
+  "sis_infec_leuc_ant5": "", "sis_infec_leuc_ant4": "", "sis_infec_leuc_antepen": "", "sis_infec_leuc_ult": "", "sis_infec_leuc_hoje": "",
+  "sis_infec_vhs_ant5": "", "sis_infec_vhs_ant4": "", "sis_infec_vhs_antepen": "", "sis_infec_vhs_ult": "", "sis_infec_vhs_hoje": "",
   "sis_infec_isolamento": "", "sis_infec_isolamento_tipo": "", "sis_infec_isolamento_motivo": "",
   "sis_infec_patogenos": "", "sis_infec_pocus": "", "sis_infec_obs": "", "sis_infec_conduta": "",
 
@@ -1571,6 +2433,11 @@ Retorne EXATAMENTE este JSON com todos os campos. Campos ausentes = "". Inteiros
   "sis_gastro_insulino": "",
   "sis_gastro_insulino_dose_manha": "", "sis_gastro_insulino_dose_tarde": "", "sis_gastro_insulino_dose_noite": "",
   "sis_gastro_evacuacao": "", "sis_gastro_evacuacao_data": "", "sis_gastro_evacuacao_laxativo": "",
+  "sis_gastro_tgo_ant5": "", "sis_gastro_tgo_ant4": "", "sis_gastro_tgo_antepen": "", "sis_gastro_tgo_ult": "", "sis_gastro_tgo_hoje": "",
+  "sis_gastro_tgp_ant5": "", "sis_gastro_tgp_ant4": "", "sis_gastro_tgp_antepen": "", "sis_gastro_tgp_ult": "", "sis_gastro_tgp_hoje": "",
+  "sis_gastro_fal_ant5": "", "sis_gastro_fal_ant4": "", "sis_gastro_fal_antepen": "", "sis_gastro_fal_ult": "", "sis_gastro_fal_hoje": "",
+  "sis_gastro_ggt_ant5": "", "sis_gastro_ggt_ant4": "", "sis_gastro_ggt_antepen": "", "sis_gastro_ggt_ult": "", "sis_gastro_ggt_hoje": "",
+  "sis_gastro_bt_ant5": "", "sis_gastro_bt_ant4": "", "sis_gastro_bt_antepen": "", "sis_gastro_bt_ult": "", "sis_gastro_bt_hoje": "",
   "sis_gastro_pocus": "", "sis_gastro_obs": "", "sis_gastro_conduta": "",
 
   "sis_hemato_anticoag": "", "sis_hemato_anticoag_tipo": "", "sis_hemato_anticoag_motivo": "",
@@ -1579,9 +2446,10 @@ Retorne EXATAMENTE este JSON com todos os campos. Campos ausentes = "". Inteiros
   "sis_hemato_transf_1_comp": "", "sis_hemato_transf_1_bolsas": "",
   "sis_hemato_transf_2_comp": "", "sis_hemato_transf_2_bolsas": "",
   "sis_hemato_transf_3_comp": "", "sis_hemato_transf_3_bolsas": "",
-  "sis_hemato_hb_antepen": "", "sis_hemato_hb_ult": "", "sis_hemato_hb_hoje": "",
-  "sis_hemato_plaq_antepen": "", "sis_hemato_plaq_ult": "", "sis_hemato_plaq_hoje": "",
-  "sis_hemato_inr_antepen": "", "sis_hemato_inr_ult": "", "sis_hemato_inr_hoje": "",
+  "sis_hemato_hb_ant5": "", "sis_hemato_hb_ant4": "", "sis_hemato_hb_antepen": "", "sis_hemato_hb_ult": "", "sis_hemato_hb_hoje": "",
+  "sis_hemato_plaq_ant5": "", "sis_hemato_plaq_ant4": "", "sis_hemato_plaq_antepen": "", "sis_hemato_plaq_ult": "", "sis_hemato_plaq_hoje": "",
+  "sis_hemato_inr_ant5": "", "sis_hemato_inr_ant4": "", "sis_hemato_inr_antepen": "", "sis_hemato_inr_ult": "", "sis_hemato_inr_hoje": "",
+  "sis_hemato_ttpa_ant5": "", "sis_hemato_ttpa_ant4": "", "sis_hemato_ttpa_antepen": "", "sis_hemato_ttpa_ult": "", "sis_hemato_ttpa_hoje": "",
   "sis_hemato_pocus": "", "sis_hemato_obs": "", "sis_hemato_conduta": "",
 
   "sis_pele_edema": "", "sis_pele_edema_cruzes": "",
@@ -1589,7 +2457,118 @@ Retorne EXATAMENTE este JSON com todos os campos. Campos ausentes = "". Inteiros
   "sis_pele_lpp_local_1": "", "sis_pele_lpp_grau_1": "",
   "sis_pele_lpp_local_2": "", "sis_pele_lpp_grau_2": "",
   "sis_pele_lpp_local_3": "", "sis_pele_lpp_grau_3": "",
-  "sis_pele_polineuropatia": "", "sis_pele_pocus": "", "sis_pele_obs": "", "sis_pele_conduta": ""
+  "sis_pele_polineuropatia": "",
+  "sis_pele_cpk_ant5": "", "sis_pele_cpk_ant4": "", "sis_pele_cpk_antepen": "", "sis_pele_cpk_ult": "", "sis_pele_cpk_hoje": "",
+  "sis_pele_pocus": "", "sis_pele_obs": "", "sis_pele_conduta": ""
+}
+
+# EXEMPLO DE SAÍDA PERFEITA (paciente intubada, séptica, em VM, em vasopressor)
+{
+  "sis_neuro_ecg": "10", "sis_neuro_ecg_ao": "3", "sis_neuro_ecg_rv": "2", "sis_neuro_ecg_rm": "5",
+  "sis_neuro_ecg_p": "14", "sis_neuro_rass": -2,
+  "sis_neuro_delirium": "Não", "sis_neuro_delirium_tipo": "", "sis_neuro_cam_icu": "Negativo",
+  "sis_neuro_pupilas_tam": "Normal", "sis_neuro_pupilas_simetria": "Simétricas", "sis_neuro_pupilas_foto": "Fotoreagente",
+  "sis_neuro_analgesico_adequado": "Sim", "sis_neuro_deficits_focais": "", "sis_neuro_deficits_ausente": "Ausente",
+  "sis_neuro_analgesia_1_tipo": "Fixa", "sis_neuro_analgesia_1_drogas": "Fentanil", "sis_neuro_analgesia_1_dose": "25 mcg/h", "sis_neuro_analgesia_1_freq": "BIC",
+  "sis_neuro_analgesia_2_tipo": "", "sis_neuro_analgesia_2_drogas": "", "sis_neuro_analgesia_2_dose": "", "sis_neuro_analgesia_2_freq": "",
+  "sis_neuro_analgesia_3_tipo": "", "sis_neuro_analgesia_3_drogas": "", "sis_neuro_analgesia_3_dose": "", "sis_neuro_analgesia_3_freq": "",
+  "sis_neuro_sedacao_meta": "RASS -2",
+  "sis_neuro_sedacao_1_drogas": "Midazolam", "sis_neuro_sedacao_1_dose": "5 mg/h BIC",
+  "sis_neuro_sedacao_2_drogas": "", "sis_neuro_sedacao_2_dose": "",
+  "sis_neuro_sedacao_3_drogas": "", "sis_neuro_sedacao_3_dose": "",
+  "sis_neuro_bloqueador_med": "", "sis_neuro_bloqueador_dose": "",
+  "sis_neuro_pocus": "", "sis_neuro_obs": "Paciente com resposta a comandos simples durante janela de sedação às 8h.", "sis_neuro_conduta": "",
+
+  "sis_resp_ausculta": "MV+ reduzido em bases, subcrepitantes em base D, expansão bilateral assimétrica",
+  "sis_resp_modo": "Ventilação Mecânica",
+  "sis_resp_modo_vent": "PCV",
+  "sis_resp_oxigenio_modo": "", "sis_resp_oxigenio_fluxo": "",
+  "sis_resp_pressao": "18", "sis_resp_volume": "460", "sis_resp_fio2": "55", "sis_resp_peep": "8", "sis_resp_freq": "18",
+  "sis_resp_vent_protetora": "Sim", "sis_resp_sincronico": "Sim", "sis_resp_assincronia": "",
+  "sis_resp_complacencia": "38", "sis_resp_resistencia": "12", "sis_resp_dp": "10", "sis_resp_plato": "26", "sis_resp_pico": "30",
+  "sis_resp_dreno_1": "", "sis_resp_dreno_1_debito": "",
+  "sis_resp_dreno_2": "", "sis_resp_dreno_2_debito": "",
+  "sis_resp_dreno_3": "", "sis_resp_dreno_3_debito": "",
+  "sis_resp_pocus": "Padrão B bilateral em bases. Consolidação em LID com broncograma aéreo.", "sis_resp_obs": "P/F: 145. SDRA leve.", "sis_resp_conduta": "",
+
+  "sis_cardio_fc": "98", "sis_cardio_cardioscopia": "Sinusal", "sis_cardio_pam": "72",
+  "sis_cardio_exame_cardio": "2BNRF, sem sopros audíveis",
+  "sis_cardio_perfusao": "Lentificada", "sis_cardio_tec": "4 seg.",
+  "sis_cardio_fluido_responsivo": "Não", "sis_cardio_fluido_tolerante": "Sim",
+  "sis_cardio_lac_ant5": "", "sis_cardio_lac_ant4": "7.1", "sis_cardio_lac_antepen": "5.2", "sis_cardio_lac_ult": "3.8", "sis_cardio_lac_hoje": "2.9",
+  "sis_cardio_trop_ant5": "", "sis_cardio_trop_ant4": "", "sis_cardio_trop_antepen": "", "sis_cardio_trop_ult": "850", "sis_cardio_trop_hoje": "1240",
+  "sis_cardio_dva_1_med": "Noradrenalina", "sis_cardio_dva_1_dose": "0.18 mcg/kg/min",
+  "sis_cardio_dva_2_med": "Vasopressina", "sis_cardio_dva_2_dose": "0.03 U/min",
+  "sis_cardio_dva_3_med": "", "sis_cardio_dva_3_dose": "",
+  "sis_cardio_dva_4_med": "", "sis_cardio_dva_4_dose": "",
+  "sis_cardio_pocus": "FVE preservada, VCI colabável > 50%, SPAP estimada 42 mmHg.", "sis_cardio_obs": "Hiperlactatemia com tendência de queda. Reduzindo vasopressina.", "sis_cardio_conduta": "",
+
+  "sis_renal_diurese": "820mL", "sis_renal_balanco": "+620mL", "sis_renal_balanco_acum": "+4200mL", "sis_renal_volemia": "Hipervolêmico",
+  "sis_renal_cr_ant5": "", "sis_renal_cr_ant4": "1.8", "sis_renal_cr_antepen": "2.2", "sis_renal_cr_ult": "3.1", "sis_renal_cr_hoje": "3.4",
+  "sis_renal_ur_ant5": "", "sis_renal_ur_ant4": "82", "sis_renal_ur_antepen": "98", "sis_renal_ur_ult": "128", "sis_renal_ur_hoje": "142",
+  "sis_renal_diu_ant5": "", "sis_renal_diu_ant4": "", "sis_renal_diu_antepen": "950", "sis_renal_diu_ult": "780", "sis_renal_diu_hoje": "820",
+  "sis_renal_bh_ant5": "", "sis_renal_bh_ant4": "", "sis_renal_bh_antepen": "+480", "sis_renal_bh_ult": "+550", "sis_renal_bh_hoje": "+620",
+  "sis_renal_na_ant5": "", "sis_renal_na_ant4": "", "sis_renal_na_antepen": "", "sis_renal_na_ult": "141", "sis_renal_na_hoje": "139",
+  "sis_renal_k_ant5": "", "sis_renal_k_ant4": "", "sis_renal_k_antepen": "4.2", "sis_renal_k_ult": "4.6", "sis_renal_k_hoje": "4.8",
+  "sis_renal_mg_ant5": "", "sis_renal_mg_ant4": "", "sis_renal_mg_antepen": "1.4", "sis_renal_mg_ult": "1.3", "sis_renal_mg_hoje": "1.2",
+  "sis_renal_fos_ant5": "", "sis_renal_fos_ant4": "", "sis_renal_fos_antepen": "4.8", "sis_renal_fos_ult": "5.0", "sis_renal_fos_hoje": "5.2",
+  "sis_renal_cai_ant5": "", "sis_renal_cai_ant4": "", "sis_renal_cai_antepen": "1.08", "sis_renal_cai_ult": "1.06", "sis_renal_cai_hoje": "1.04",
+  "sis_renal_trs": "Sim", "sis_renal_trs_via": "Cateter femoral D", "sis_renal_trs_ultima": "03/03/2026 22h", "sis_renal_trs_proxima": "Dialítico — sem programação definida",
+  "sis_renal_pocus": "Rins aumentados e ecogênicos bilateralmente.", "sis_renal_obs": "LRA KDIGO 2, oligúria. Indicado TRS por hipercalemia e acidose refratária.", "sis_renal_conduta": "",
+  "sis_metab_obs": "Acidose metabólica com AG elevado (17.6). Hiperlactatemia em queda. Hipercalemia K 4.8. Hipomagnesemia Mg 1.2.", "sis_metab_pocus": "", "sis_metab_conduta": "",
+  "sis_nutri_obs": "TNE via SNE. Peptamen 1.5 kcal/mL a 50 mL/h (1800 kcal/dia). Atingindo meta. Sem resíduo gástrico elevado.", "sis_nutri_pocus": "Antro gástrico vazio.", "sis_nutri_conduta": "",
+
+  "sis_infec_febre": "Sim", "sis_infec_febre_vezes": "2", "sis_infec_febre_ultima": "03/03 23h",
+  "sis_infec_atb": "Sim", "sis_infec_atb_guiado": "Sim",
+  "sis_infec_atb_1": "Polimixina B", "sis_infec_atb_2": "Ceftazidima-Avibactam", "sis_infec_atb_3": "",
+  "sis_infec_culturas_and": "Sim",
+  "sis_infec_cult_1_sitio": "Urocultura", "sis_infec_cult_1_data": "23/02/2026",
+  "sis_infec_cult_2_sitio": "", "sis_infec_cult_2_data": "",
+  "sis_infec_cult_3_sitio": "", "sis_infec_cult_3_data": "",
+  "sis_infec_cult_4_sitio": "", "sis_infec_cult_4_data": "",
+  "sis_infec_pcr_ant5": "", "sis_infec_pcr_ant4": "398", "sis_infec_pcr_antepen": "312", "sis_infec_pcr_ult": "241", "sis_infec_pcr_hoje": "188",
+  "sis_infec_leuc_ant5": "", "sis_infec_leuc_ant4": "32100", "sis_infec_leuc_antepen": "28600", "sis_infec_leuc_ult": "22400", "sis_infec_leuc_hoje": "18200",
+  "sis_infec_vhs_ant5": "", "sis_infec_vhs_ant4": "", "sis_infec_vhs_antepen": "", "sis_infec_vhs_ult": "68", "sis_infec_vhs_hoje": "40",
+  "sis_infec_isolamento": "Sim", "sis_infec_isolamento_tipo": "Contato", "sis_infec_isolamento_motivo": "K. pneumoniae KPC+",
+  "sis_infec_patogenos": "Klebsiella pneumoniae KPC+ (AT 23/02/2026)", "sis_infec_pocus": "", "sis_infec_obs": "Febre persistente, sem novo foco identificado. PCR em queda. Leuco caindo.", "sis_infec_conduta": "",
+
+  "sis_gastro_exame_fisico": "Típico, RHA presente, indolor a palpação, sem sinais de peritonite, inocente",
+  "sis_gastro_ictericia_presente": "Presente", "sis_gastro_ictericia_cruzes": "2",
+  "sis_gastro_dieta_oral": "", "sis_gastro_dieta_enteral": "Peptamen", "sis_gastro_dieta_enteral_vol": "1800 kcal",
+  "sis_gastro_dieta_parenteral": "", "sis_gastro_dieta_parenteral_vol": "", "sis_gastro_meta_calorica": "1800",
+  "sis_gastro_na_meta": "Sim", "sis_gastro_ingestao_quanto": "",
+  "sis_gastro_escape_glicemico": "Sim", "sis_gastro_escape_vezes": "2",
+  "sis_gastro_escape_manha": false, "sis_gastro_escape_tarde": true, "sis_gastro_escape_noite": true,
+  "sis_gastro_insulino": "Sim",
+  "sis_gastro_insulino_dose_manha": "8 Un", "sis_gastro_insulino_dose_tarde": "6 Un", "sis_gastro_insulino_dose_noite": "6 Un",
+  "sis_gastro_evacuacao": "Sim", "sis_gastro_evacuacao_data": "04/03/2026", "sis_gastro_evacuacao_laxativo": "",
+  "sis_gastro_tgo_ant5": "", "sis_gastro_tgo_ant4": "", "sis_gastro_tgo_antepen": "82", "sis_gastro_tgo_ult": "94", "sis_gastro_tgo_hoje": "88",
+  "sis_gastro_tgp_ant5": "", "sis_gastro_tgp_ant4": "", "sis_gastro_tgp_antepen": "62", "sis_gastro_tgp_ult": "71", "sis_gastro_tgp_hoje": "68",
+  "sis_gastro_fal_ant5": "", "sis_gastro_fal_ant4": "", "sis_gastro_fal_antepen": "", "sis_gastro_fal_ult": "", "sis_gastro_fal_hoje": "",
+  "sis_gastro_ggt_ant5": "", "sis_gastro_ggt_ant4": "", "sis_gastro_ggt_antepen": "", "sis_gastro_ggt_ult": "", "sis_gastro_ggt_hoje": "",
+  "sis_gastro_bt_ant5": "", "sis_gastro_bt_ant4": "1.8", "sis_gastro_bt_antepen": "2.4", "sis_gastro_bt_ult": "3.1", "sis_gastro_bt_hoje": "2.8",
+  "sis_gastro_pocus": "", "sis_gastro_obs": "Icterícia 2+. Elevação de bilirrubinas associada a sepse.", "sis_gastro_conduta": "",
+
+  "sis_hemato_anticoag": "Sim", "sis_hemato_anticoag_tipo": "Profilática", "sis_hemato_anticoag_motivo": "TEV",
+  "sis_hemato_sangramento": "Não", "sis_hemato_sangramento_via": "", "sis_hemato_sangramento_data": "",
+  "sis_hemato_transf_data": "02/03/2026",
+  "sis_hemato_transf_1_comp": "Concentrado de Hemácias", "sis_hemato_transf_1_bolsas": "2 bolsas",
+  "sis_hemato_transf_2_comp": "", "sis_hemato_transf_2_bolsas": "",
+  "sis_hemato_transf_3_comp": "", "sis_hemato_transf_3_bolsas": "",
+  "sis_hemato_hb_ant5": "", "sis_hemato_hb_ant4": "11.4", "sis_hemato_hb_antepen": "10.2", "sis_hemato_hb_ult": "9.1", "sis_hemato_hb_hoje": "8.4",
+  "sis_hemato_plaq_ant5": "", "sis_hemato_plaq_ant4": "54000", "sis_hemato_plaq_antepen": "68000", "sis_hemato_plaq_ult": "82000", "sis_hemato_plaq_hoje": "98000",
+  "sis_hemato_inr_ant5": "", "sis_hemato_inr_ant4": "", "sis_hemato_inr_antepen": "", "sis_hemato_inr_ult": "1.8", "sis_hemato_inr_hoje": "1.6",
+  "sis_hemato_ttpa_ant5": "", "sis_hemato_ttpa_ant4": "", "sis_hemato_ttpa_antepen": "1.54", "sis_hemato_ttpa_ult": "1.41", "sis_hemato_ttpa_hoje": "1.37",
+  "sis_hemato_pocus": "", "sis_hemato_obs": "Plaquetas em recuperação pós-nadir séptico.", "sis_hemato_conduta": "",
+
+  "sis_pele_edema": "Presente", "sis_pele_edema_cruzes": "3",
+  "sis_pele_lpp": "Sim",
+  "sis_pele_lpp_local_1": "Sacro", "sis_pele_lpp_grau_1": "Grau II",
+  "sis_pele_lpp_local_2": "", "sis_pele_lpp_grau_2": "",
+  "sis_pele_lpp_local_3": "", "sis_pele_lpp_grau_3": "",
+  "sis_pele_polineuropatia": "Sim",
+  "sis_pele_cpk_ant5": "", "sis_pele_cpk_ant4": "", "sis_pele_cpk_antepen": "", "sis_pele_cpk_ult": "", "sis_pele_cpk_hoje": "",
+  "sis_pele_pocus": "", "sis_pele_obs": "LPP sacral Grau II em cicatrização. Mudança de decúbito 2/2h. Colchão piramidal.", "sis_pele_conduta": ""
 }"""
 
 def preencher_sistemas(texto, api_key, provider, modelo):
@@ -1652,6 +2631,11 @@ def preencher_sistemas(texto, api_key, provider, modelo):
     # Renomeia sis_gastro_evacuacao_laxativo → sis_gastro_laxativo (chave do formulário)
     if "sis_gastro_evacuacao_laxativo" in r:
         r["sis_gastro_laxativo"] = r.pop("sis_gastro_evacuacao_laxativo")
+
+    # Remove campos _show retornados pela IA — esses são controlados pelo usuário e devem ficar False
+    for k in list(r.keys()):
+        if k.endswith("_show"):
+            del r[k]
 
     return r
 
@@ -1815,6 +2799,8 @@ NOMES_SECOES = {
     "controles":      "11. Controles & Balanço",
     "evolucao":       "12. Evolução Clínica",
     "sistemas":       "13. Sistemas",
+    "condutas":       "14. Condutas",
+    "prescricao":     "15. Prescrição",
 }
 
 

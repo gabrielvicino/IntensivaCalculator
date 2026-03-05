@@ -1,15 +1,38 @@
 import re
 import streamlit as st
 from modules import ui
-from modules import agentes_secoes
 
 # ---------------------------------------------------------------------------
 # Formatação automática de datas
 # ---------------------------------------------------------------------------
 _PAT_CHAVE_DATA = re.compile(
-    r"(_data|_ultima|_proxima|_antepen|_ini$|_fim$|di_hosp$|di_uti$|di_enf$)",
+    r"(_data|_ultima|_proxima|_ini$|_fim$|di_hosp$|di_uti$|di_enf$)",
     re.IGNORECASE,
 )
+
+_PAT_CHAVE_HORA = re.compile(r"_dt$", re.IGNORECASE)
+
+
+def _fmt_hora(val: str) -> str:
+    """
+    Formata campo de hora para os campos _dt (ex: lactato).
+    - "18"        → "18h"
+    - "04/03 18"  → "04/03 18h"
+    - "18h"       → sem alteração
+    """
+    if not isinstance(val, str):
+        return val
+    stripped = val.strip()
+    if not stripped or stripped.endswith("h"):
+        return val
+    # Apenas dígitos (ex: "18") → hora pura
+    if re.fullmatch(r"\d{1,2}", stripped):
+        return f"{stripped}h"
+    # Data + espaço + dígitos no final (ex: "04/03 18")
+    m = re.match(r"^(.+\s)(\d{1,2})$", stripped)
+    if m:
+        return f"{m.group(1)}{m.group(2)}h"
+    return val
 
 
 def _fmt_data(val: str) -> str:
@@ -34,8 +57,9 @@ def _fmt_data(val: str) -> str:
         return f"{digitos}/"
     if n <= 4:
         return f"{digitos[0:2]}/{digitos[2:4]}/"
-    if n <= 6:
-        return f"{digitos[0:2]}/{digitos[2:4]}/{digitos[4:6]}"
+    if n == 6:
+        # DD/MM/AA → DD/MM/20AA (ex: 040326 → 04/03/2026)
+        return f"{digitos[0:2]}/{digitos[2:4]}/20{digitos[4:6]}"
     if n <= 8:
         return f"{digitos[0:2]}/{digitos[2:4]}/{digitos[4:8]}"
     # Mais de 8 dígitos: formata só os 8 primeiros
@@ -44,15 +68,23 @@ def _fmt_data(val: str) -> str:
 
 def _normalizar_datas():
     """
-    Percorre todos os campos de session_state com chave de data e
-    reformata valores que sejam sequências puras de dígitos.
-    Executado a cada rerender (junto com _sanitizar_radios).
+    Reformata automaticamente apenas as chaves conhecidas de data/_dt.
+    Usa sets pré-computados — não faz regex sobre todo o session_state a cada render.
     """
-    for k, v in list(st.session_state.items()):
-        if _PAT_CHAVE_DATA.search(k):
+    data_keys, hora_keys = _get_campos_data_hora_cached()
+    ss = st.session_state
+    for k in data_keys:
+        v = ss.get(k)
+        if isinstance(v, str) and v:
             novo = _fmt_data(v)
             if novo != v:
-                st.session_state[k] = novo
+                ss[k] = novo
+    for k in hora_keys:
+        v = ss.get(k)
+        if isinstance(v, str) and v:
+            novo = _fmt_hora(v)
+            if novo != v:
+                ss[k] = novo
 
 # --- IMPORTAÇÃO DAS SEÇÕES ---
 from modules.secoes import identificacao      # 1
@@ -90,7 +122,8 @@ def _campos_base() -> dict:
     campos.update(prescricao.get_campos())
     campos.update(condutas.get_campos())
     campos.update({
-        'texto_final_gerado': '',
+        'texto_bruto_original': '',  # Bloco 1: texto colado antes do processamento
+        'texto_final_gerado': '',    # Bloco 3: prontuário gerado pelo modelo
         # campos _notas preenchidos pelo ia_extrator
         'identificacao_notas': '', 'hd_notas': '', 'comorbidades_notas': '',
         'muc_notas': '', 'hmpa_texto': '', 'dispositivos_notas': '',
@@ -101,22 +134,15 @@ def _campos_base() -> dict:
     return campos
 
 
-def get_todos_campos_keys() -> list:
-    """
-    Retorna a lista de chaves de todos os campos do formulário.
-    Usada para salvar/carregar dados no Google Sheets.
-    """
-    return list(_campos_base().keys())
-
-
-def inicializar_estado():
-    for k, v in _campos_base().items():
-        if k not in st.session_state:
-            st.session_state[k] = v
-
-
-# Cache dos campos padrão — rebuilt apenas uma vez por sessão (não a cada render)
+# ===========================================================================
+# CACHES DE MÓDULO — calculados uma única vez por processo, não por render
+# ===========================================================================
 _CAMPOS_BASE_CACHE: dict | None = None
+_CAMPOS_KEYS_CACHE: list | None = None
+_CAMPOS_NONE_CACHE: set | None = None   # chaves cujo default é None (radio/pills)
+_CAMPOS_DATA_CACHE: frozenset | None = None   # chaves de data
+_CAMPOS_HORA_CACHE: frozenset | None = None   # chaves de hora (_dt)
+
 
 def _get_campos_base_cached() -> dict:
     global _CAMPOS_BASE_CACHE
@@ -125,17 +151,72 @@ def _get_campos_base_cached() -> dict:
     return _CAMPOS_BASE_CACHE
 
 
+def _get_campos_keys_cached() -> list:
+    global _CAMPOS_KEYS_CACHE
+    if _CAMPOS_KEYS_CACHE is None:
+        _CAMPOS_KEYS_CACHE = list(_get_campos_base_cached().keys())
+    return _CAMPOS_KEYS_CACHE
+
+
+def _get_campos_none_cached() -> set:
+    """Retorna set de chaves cujo valor padrão é None (radios/pills)."""
+    global _CAMPOS_NONE_CACHE
+    if _CAMPOS_NONE_CACHE is None:
+        _CAMPOS_NONE_CACHE = {k for k, v in _get_campos_base_cached().items() if v is None}
+    return _CAMPOS_NONE_CACHE
+
+
+def _get_campos_data_hora_cached() -> tuple[frozenset, frozenset]:
+    """Retorna (data_keys, hora_keys) precomputados a partir dos campos conhecidos."""
+    global _CAMPOS_DATA_CACHE, _CAMPOS_HORA_CACHE
+    if _CAMPOS_DATA_CACHE is None:
+        campos = _get_campos_base_cached()
+        _CAMPOS_DATA_CACHE = frozenset(k for k in campos if _PAT_CHAVE_DATA.search(k))
+        _CAMPOS_HORA_CACHE = frozenset(k for k in campos if _PAT_CHAVE_HORA.search(k))
+    return _CAMPOS_DATA_CACHE, _CAMPOS_HORA_CACHE
+
+
+def get_todos_campos_keys() -> list:
+    """
+    Retorna a lista de chaves de todos os campos do formulário.
+    Usada para salvar/carregar dados no Google Sheets.
+    """
+    return _get_campos_keys_cached()
+
+
+def inicializar_estado():
+    """Garante que todos os campos estão no session_state com seu valor padrão."""
+    defaults = _get_campos_base_cached()
+    ss = st.session_state
+    for k, v in defaults.items():
+        if k not in ss:
+            ss[k] = v
+
+
 def _sanitizar_radios():
     """
-    Corrige campos de radio com index=None que receberam '' (string vazia) vinda de
-    agentes de IA ou do carregamento do Google Sheets.
-    Regra: se o valor padrão do campo é None e o atual é '', reseta para None.
-    Usa cache dos defaults — não reconstrói _campos_base() a cada render.
+    Corrige campos de radio/pills com default None que receberam '' (string vazia)
+    vinda de agentes de IA ou do carregamento do Google Sheets.
+    Usa set pré-computado — não itera o dict completo.
     """
-    defaults = _get_campos_base_cached()
-    for k, v_default in defaults.items():
-        if v_default is None and st.session_state.get(k) == "":
-            st.session_state[k] = None
+    ss = st.session_state
+    for k in _get_campos_none_cached():
+        if ss.get(k) == "":
+            ss[k] = None
+
+def _btn_gerar_bloco(secao_key: str):
+    """Renderiza o botão 'Gerar Bloco' para uma seção específica (dentro de um form)."""
+    from modules import agentes_secoes
+    nome = agentes_secoes.NOMES_SECOES.get(secao_key, secao_key.capitalize())
+    if st.form_submit_button(
+        f"✨ Gerar Bloco {nome}",
+        key=f"_fsbtn_gerar_{secao_key}",
+        help="Gera o texto desta seção e abre para visualização/edição",
+        use_container_width=True,
+        type="primary",
+    ):
+        st.session_state["_gerar_bloco_pendente"] = secao_key
+
 
 def _btn_agente(secao_key: str):
     """
@@ -144,6 +225,7 @@ def _btn_agente(secao_key: str):
     O botão roda apenas o agente daquela seção sem afetar o restante.
     """
     def _render():
+        from modules import agentes_secoes
         nome_secao = agentes_secoes.NOMES_SECOES.get(secao_key, secao_key)
 
         clicked = st.form_submit_button(
@@ -155,6 +237,20 @@ def _btn_agente(secao_key: str):
         if clicked:
             st.session_state["_agente_pendente"] = secao_key
     return _render
+
+
+_CSS_FORMULARIO = """<style>
+    [data-testid="stExpander"] { border: none !important; box-shadow: none !important; background: transparent !important; }
+    [data-testid="stExpander"] details { border-radius: 4px !important; border: 1px solid #f0f0f0 !important; background-color: #fafafa; box-shadow: none; margin-bottom: 8px !important; }
+    [data-testid="stExpander"] details summary p { font-size: 0.95rem !important; font-weight: 500 !important; margin: 0 !important; color: #666 !important; }
+    [data-testid="stExpander"] details summary { background-color: transparent !important; padding: 0.6rem 0.8rem !important; transition: all 0.15s ease; border-left: 3px solid #e8e8e8; min-height: auto !important; }
+    [data-testid="stExpander"] details:hover summary { background-color: #f5f5f5 !important; }
+    div[data-testid="stTextInput"]:has(input[placeholder="Escreva a conduta aqui..."]) { border-left: 3px solid #43a047; padding-left: 8px; }
+    div[data-testid="stCheckbox"] label { white-space: nowrap !important; }
+    hr { border: none !important; border-top: 2px solid #9ca3af !important; box-shadow: 0 4px 0 0 #9ca3af !important; margin: 1.6rem 0 1.8rem 0 !important; opacity: 1 !important; }
+    h5:nth-of-type(odd) { background: linear-gradient(90deg, #FFF3CD 0%, #FFFDF5 60%, #FFFFFF 100%) !important; padding: 0.7rem 1.1rem !important; border-left: 5px solid #F59E0B !important; border-radius: 0 6px 6px 0 !important; margin-top: 0.4rem !important; margin-bottom: 1rem !important; font-size: 0.97rem !important; font-weight: 700 !important; letter-spacing: 0.01em !important; box-shadow: 0 1px 4px rgba(245,158,11,0.10) !important; }
+    h5:nth-of-type(even) { background: linear-gradient(90deg, #D1FAE5 0%, #F0FDF8 60%, #FFFFFF 100%) !important; padding: 0.7rem 1.1rem !important; border-left: 5px solid #10B981 !important; border-radius: 0 6px 6px 0 !important; margin-top: 0.4rem !important; margin-bottom: 1rem !important; font-size: 0.97rem !important; font-weight: 700 !important; letter-spacing: 0.01em !important; box-shadow: 0 1px 4px rgba(16,185,129,0.10) !important; }
+</style>"""
 
 
 def render_formulario_completo():
@@ -169,127 +265,81 @@ def render_formulario_completo():
     # Reformata campos de data digitados sem barras (ex.: 10022026 → 10/02/2026)
     _normalizar_datas()
 
-    # --- CSS: ESTILO DISCRETO PARA EXPANDERS E DESTAQUE VERDE PARA CONDUTAS ---
-    st.markdown("""
-    <style>
-        /* ================= EXPANDERS DISCRETOS ================= */
-        [data-testid="stExpander"] { 
-            border: none !important; 
-            box-shadow: none !important; 
-            background: transparent !important;
-        }
-        
-        [data-testid="stExpander"] details {
-            border-radius: 4px !important;
-            border: 1px solid #f0f0f0 !important;
-            background-color: #fafafa;
-            box-shadow: none;
-            margin-bottom: 8px !important; 
-        }
-
-        /* Texto do Título - Menor e mais discreto */
-        [data-testid="stExpander"] details summary p {
-            font-size: 0.95rem !important;
-            font-weight: 500 !important;
-            margin: 0 !important;
-            color: #666 !important;
-        }
-        
-        /* Base da Barra de Título - Mais compacta */
-        [data-testid="stExpander"] details summary {
-            background-color: transparent !important;
-            padding: 0.6rem 0.8rem !important;
-            transition: all 0.15s ease;
-            border-left: 3px solid #e8e8e8; 
-            min-height: auto !important;
-        }
-        
-        /* Hover sutil */
-        [data-testid="stExpander"] details:hover summary {
-            background-color: #f5f5f5 !important;
-        }
-        
-        /* ================= DESTAQUE VERDE PARA CONDUTAS ================= */
-        /* Apenas marca verde discreta na borda esquerda — resto igual aos demais campos */
-        div[data-testid="stTextInput"]:has(input[placeholder="Escreva a conduta aqui..."]) {
-            border-left: 3px solid #43a047;
-            padding-left: 8px;
-        }
-        
-        /* ================= CHECKBOX LABELS SEM QUEBRA ================= */
-        /* Evita que "Manhã" e outros labels quebrem em múltiplas linhas */
-        div[data-testid="stCheckbox"] label {
-            white-space: nowrap !important;
-        }
-        
-        /* ================= EFEITO ZEBRADO NOS TÍTULOS DAS SEÇÕES ================= */
-        /* Títulos h5 das seções - efeito alternado com barra lateral */
-        
-        /* Seções ímpares (1, 3, 5, 7, 9, 11, 13): Amarelo/Âmbar discreto */
-        h5:nth-of-type(odd) {
-            background: linear-gradient(90deg, #FFF8E1 0%, #FFFFFF 100%) !important;
-            padding: 0.6rem 1rem !important;
-            border-left: 4px solid #FFA726 !important;
-            border-radius: 4px !important;
-            margin-bottom: 1rem !important;
-        }
-        
-        /* Seções pares (2, 4, 6, 8, 10, 12): Verde discreto */
-        h5:nth-of-type(even) {
-            background: linear-gradient(90deg, #E8F5E9 0%, #FFFFFF 100%) !important;
-            padding: 0.6rem 1rem !important;
-            border-left: 4px solid #4CAF50 !important;
-            border-radius: 4px !important;
-            margin-bottom: 1rem !important;
-        }
-
-    </style>
-    """, unsafe_allow_html=True)
+    st.markdown(_CSS_FORMULARIO, unsafe_allow_html=True)
 
     # ==========================================
     # 1. DADOS DO PACIENTE
     # ==========================================
     with st.expander("Dados do Paciente", expanded=False):
         identificacao.render(_agent_btn_callback=_btn_agente("identificacao"))
-        st.write("")
+        _btn_gerar_bloco("identificacao")
+        st.divider()
         hd.render(_agent_btn_callback=_btn_agente("hd"))
-        st.write("")
+        _btn_gerar_bloco("hd")
+        st.divider()
         comorbidades.render(_agent_btn_callback=_btn_agente("comorbidades"))
-        st.write("")
+        _btn_gerar_bloco("comorbidades")
+        st.divider()
         muc.render(_agent_btn_callback=_btn_agente("muc"))
-        st.write("")
+        _btn_gerar_bloco("muc")
+        st.divider()
         hmpa.render(_agent_btn_callback=_btn_agente("hmpa"))
-        st.write("")
+        _btn_gerar_bloco("hmpa")
 
-    st.write("") # Espaço visual
+    st.write("")
 
     # ==========================================
     # 2. DADOS CLÍNICOS
     # ==========================================
     with st.expander("Evolução Horizontal", expanded=False):
         dispositivos.render(_agent_btn_callback=_btn_agente("dispositivos"))
-        st.write("")
+        _btn_gerar_bloco("dispositivos")
+        st.divider()
         culturas.render(_agent_btn_callback=_btn_agente("culturas"))
-        st.write("")
+        _btn_gerar_bloco("culturas")
+        st.divider()
         antibioticos.render(_agent_btn_callback=_btn_agente("antibioticos"))
-        st.write("")
+        _btn_gerar_bloco("antibioticos")
+        st.divider()
         complementares.render(_agent_btn_callback=_btn_agente("complementares"))
-        st.write("")
+        _btn_gerar_bloco("complementares")
 
-    st.write("") # Espaço visual
+    st.write("")
 
     # ==========================================
     # 3. EVOLUÇÃO DIÁRIA
     # ==========================================
     with st.expander("Evolução Diária", expanded=True):
+        # ── Botão global: Evolução Hoje para todos os blocos diários ──────────
+        if st.form_submit_button(
+            "📅 Evolução Hoje — Labs · Controles · Sistemas",
+            key="_fsbtn_evo_hoje_global",
+            use_container_width=True,
+            help="Desloca os slots de Laboratoriais, Controles e Sistemas (hoje→ontem→anteontem) e executa o Parsing dos três blocos.",
+        ):
+            laboratoriais._deslocar_laboratoriais()
+            controles._deslocar_dias()
+            sistemas._deslocar_sistemas()
+            st.session_state["_lab_deterministico_pendente"]      = True
+            st.session_state["_ctrl_deterministico_pendente"]     = True
+            st.session_state["_sistemas_deterministico_pendente"] = True
+            st.toast("✅ Evolução Hoje aplicada em Labs, Controles e Sistemas — Parsing em andamento.", icon="📅")
+
+        st.divider()
         laboratoriais.render(_agent_btn_callback=_btn_agente("laboratoriais"))
-        st.write("")
+        _btn_gerar_bloco("laboratoriais")
+        st.divider()
         controles.render(_agent_btn_callback=_btn_agente("controles"))
-        st.write("")
+        _btn_gerar_bloco("controles")
+        st.divider()
         evolucao_clinica.render()
-        st.write("")
+        _btn_gerar_bloco("evolucao")
+        st.divider()
         sistemas.render(_agent_btn_callback=_btn_agente("sistemas"))
-        st.write("")
+        _btn_gerar_bloco("sistemas")
+        st.divider()
         prescricao.render()
-        st.write("")
+        _btn_gerar_bloco("prescricao")
+        st.divider()
         condutas.render()
+        _btn_gerar_bloco("condutas")

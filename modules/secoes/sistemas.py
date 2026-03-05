@@ -1,32 +1,55 @@
 import streamlit as st
 
-# Campos com esquema anteontem → ontem → hoje (para deslocar em "Evolução Hoje")
+# Campos com esquema 5→4→3→2→1 (ant5=mais antigo, hoje=mais recente)
+# Tupla: (prefixo, suf5, suf4, suf3, suf2, suf1)
 _CAMPOS_ANTE_ONTEM_HOJE = [
-    ("sis_renal_cr", "antepen", "ult", "hoje"),
-    ("sis_renal_ur", "antepen", "ult", "hoje"),
-    ("sis_infec_pcr", "antepen", "ult", "hoje"),
-    ("sis_infec_leuc", "antepen", "ult", "hoje"),
-    ("sis_hemato_hb", "antepen", "ult", "hoje"),
-    ("sis_hemato_plaq", "antepen", "ult", "hoje"),
-    ("sis_hemato_inr", "antepen", "ult", "hoje"),
+    # Renal
+    ("sis_renal_cr",    "ant5", "ant4", "antepen", "ult", "hoje"),
+    ("sis_renal_ur",    "ant5", "ant4", "antepen", "ult", "hoje"),
+    ("sis_renal_diu",   "ant5", "ant4", "antepen", "ult", "hoje"),
+    ("sis_renal_bh",    "ant5", "ant4", "antepen", "ult", "hoje"),
+    ("sis_renal_na",    "ant5", "ant4", "antepen", "ult", "hoje"),
+    ("sis_renal_k",     "ant5", "ant4", "antepen", "ult", "hoje"),
+    ("sis_renal_mg",    "ant5", "ant4", "antepen", "ult", "hoje"),
+    ("sis_renal_fos",   "ant5", "ant4", "antepen", "ult", "hoje"),
+    ("sis_renal_cai",   "ant5", "ant4", "antepen", "ult", "hoje"),
+    # Infeccioso
+    ("sis_infec_pcr",   "ant5", "ant4", "antepen", "ult", "hoje"),
+    ("sis_infec_leuc",  "ant5", "ant4", "antepen", "ult", "hoje"),
+    ("sis_infec_vhs",   "ant5", "ant4", "antepen", "ult", "hoje"),
+    # TGI / Gastro
+    ("sis_gastro_tgo",  "ant5", "ant4", "antepen", "ult", "hoje"),
+    ("sis_gastro_tgp",  "ant5", "ant4", "antepen", "ult", "hoje"),
+    ("sis_gastro_fal",  "ant5", "ant4", "antepen", "ult", "hoje"),
+    ("sis_gastro_ggt",  "ant5", "ant4", "antepen", "ult", "hoje"),
+    ("sis_gastro_bt",   "ant5", "ant4", "antepen", "ult", "hoje"),
+    # Cardiológico
+    ("sis_cardio_lac",  "ant5", "ant4", "antepen", "ult", "hoje"),
+    ("sis_cardio_trop", "ant5", "ant4", "antepen", "ult", "hoje"),
+    # Hematológico
+    ("sis_hemato_hb",   "ant5", "ant4", "antepen", "ult", "hoje"),
+    ("sis_hemato_plaq", "ant5", "ant4", "antepen", "ult", "hoje"),
+    ("sis_hemato_inr",  "ant5", "ant4", "antepen", "ult", "hoje"),
+    ("sis_hemato_ttpa", "ant5", "ant4", "antepen", "ult", "hoje"),
+    # Pele / Musculoesquelético
+    ("sis_pele_cpk",    "ant5", "ant4", "antepen", "ult", "hoje"),
 ]
 
 
 def _deslocar_sistemas():
     """
-    Desloca os dias nos campos de laboratório: anteontem some, ontem→anteontem, hoje→ontem, hoje fica vazio.
-    Prepara os campos para preencher os dados de hoje. Preserva todos os dados preenchidos (apenas desloca).
+    Desloca 5 slots: ant5 some, ant4→ant5, antepen→ant4, ult→antepen, hoje→ult, hoje fica vazio.
     """
-    for prefix, suf_a, suf_u, suf_h in _CAMPOS_ANTE_ONTEM_HOJE:
-        key_a = f"{prefix}_{suf_a}"
-        key_u = f"{prefix}_{suf_u}"
-        key_h = f"{prefix}_{suf_h}"
-        # Lê primeiro para não sobrescrever antes de usar
-        val_ontem = st.session_state.get(key_u, "") or ""
-        val_hoje = st.session_state.get(key_h, "") or ""
-        st.session_state[key_a] = val_ontem
-        st.session_state[key_u] = val_hoje
-        st.session_state[key_h] = ""
+    for prefix, s5, s4, s3, s2, s1 in _CAMPOS_ANTE_ONTEM_HOJE:
+        v4 = st.session_state.get(f"{prefix}_{s4}", "") or ""
+        v3 = st.session_state.get(f"{prefix}_{s3}", "") or ""
+        v2 = st.session_state.get(f"{prefix}_{s2}", "") or ""
+        v1 = st.session_state.get(f"{prefix}_{s1}", "") or ""
+        st.session_state[f"{prefix}_{s5}"] = v4
+        st.session_state[f"{prefix}_{s4}"] = v3
+        st.session_state[f"{prefix}_{s3}"] = v2
+        st.session_state[f"{prefix}_{s2}"] = v1
+        st.session_state[f"{prefix}_{s1}"] = ""
 
 
 def get_campos():
@@ -127,6 +150,11 @@ def get_campos():
         'sis_cardio_tec': '',
         'sis_cardio_fluido_responsivo': None,
         'sis_cardio_fluido_tolerante': None,
+        # Lactato e Troponina (evolução 5 slots)
+        'sis_cardio_lac_ant5':  '', 'sis_cardio_lac_ant4':  '', 'sis_cardio_lac_antepen':  '', 'sis_cardio_lac_ult':  '', 'sis_cardio_lac_hoje':  '',
+        'sis_cardio_lac_show':  False,
+        'sis_cardio_trop_ant5': '', 'sis_cardio_trop_ant4': '', 'sis_cardio_trop_antepen': '', 'sis_cardio_trop_ult': '', 'sis_cardio_trop_hoje': '',
+        'sis_cardio_trop_show': False,
         'sis_cardio_dva_1_med': '',
         'sis_cardio_dva_1_dose': '',
         'sis_cardio_dva_2_med': '',
@@ -143,17 +171,19 @@ def get_campos():
         'sis_renal_balanco': '',
         'sis_renal_balanco_acum': '',
         'sis_renal_volemia': None,
-        'sis_renal_cr_antepen': '',
-        'sis_renal_cr_ult': '',
-        'sis_renal_cr_hoje': '',
-        'sis_renal_ur_antepen': '',
-        'sis_renal_ur_ult': '',
-        'sis_renal_ur_hoje': '',
-        'sis_renal_sodio': None,
-        'sis_renal_potassio': None,
-        'sis_renal_magnesio': None,
-        'sis_renal_fosforo': None,
-        'sis_renal_calcio': None,
+        'sis_renal_cr_ant5': '', 'sis_renal_cr_ant4': '', 'sis_renal_cr_antepen': '', 'sis_renal_cr_ult': '', 'sis_renal_cr_hoje': '',
+        'sis_renal_ur_ant5': '', 'sis_renal_ur_ant4': '', 'sis_renal_ur_antepen': '', 'sis_renal_ur_ult': '', 'sis_renal_ur_hoje': '',
+        'sis_renal_diu_ant5': '', 'sis_renal_diu_ant4': '', 'sis_renal_diu_antepen': '', 'sis_renal_diu_ult': '', 'sis_renal_diu_hoje': '',
+        'sis_renal_bh_ant5':  '', 'sis_renal_bh_ant4':  '', 'sis_renal_bh_antepen':  '', 'sis_renal_bh_ult':  '', 'sis_renal_bh_hoje':  '',
+        'sis_renal_na_ant5':  '', 'sis_renal_na_ant4':  '', 'sis_renal_na_antepen':  '', 'sis_renal_na_ult':  '', 'sis_renal_na_hoje':  '',
+        'sis_renal_k_ant5':   '', 'sis_renal_k_ant4':   '', 'sis_renal_k_antepen':   '', 'sis_renal_k_ult':   '', 'sis_renal_k_hoje':   '',
+        'sis_renal_mg_ant5':  '', 'sis_renal_mg_ant4':  '', 'sis_renal_mg_antepen':  '', 'sis_renal_mg_ult':  '', 'sis_renal_mg_hoje':  '',
+        'sis_renal_fos_ant5': '', 'sis_renal_fos_ant4': '', 'sis_renal_fos_antepen': '', 'sis_renal_fos_ult': '', 'sis_renal_fos_hoje': '',
+        'sis_renal_cai_ant5': '', 'sis_renal_cai_ant4': '', 'sis_renal_cai_antepen': '', 'sis_renal_cai_ult': '', 'sis_renal_cai_hoje': '',
+        'sis_renal_cr_show':  False, 'sis_renal_ur_show': False,
+        'sis_renal_diu_show': False, 'sis_renal_bh_show':  False,
+        'sis_renal_na_show':  False, 'sis_renal_k_show':   False,
+        'sis_renal_mg_show':  False, 'sis_renal_fos_show': False, 'sis_renal_cai_show': False,
         'sis_renal_trs': None,
         'sis_renal_trs_via': '',
         'sis_renal_trs_ultima': '',
@@ -179,12 +209,12 @@ def get_campos():
         'sis_infec_cult_3_data': '',
         'sis_infec_cult_4_sitio': '',
         'sis_infec_cult_4_data': '',
-        'sis_infec_pcr_hoje': '',
-        'sis_infec_pcr_ult': '',
-        'sis_infec_pcr_antepen': '',
-        'sis_infec_leuc_antepen': '',
-        'sis_infec_leuc_ult': '',
-        'sis_infec_leuc_hoje': '',
+        'sis_infec_pcr_ant5': '', 'sis_infec_pcr_ant4': '', 'sis_infec_pcr_antepen': '', 'sis_infec_pcr_ult': '', 'sis_infec_pcr_hoje': '',
+        'sis_infec_leuc_ant5': '', 'sis_infec_leuc_ant4': '', 'sis_infec_leuc_antepen': '', 'sis_infec_leuc_ult': '', 'sis_infec_leuc_hoje': '',
+        'sis_infec_vhs_ant5': '', 'sis_infec_vhs_ant4': '', 'sis_infec_vhs_antepen': '', 'sis_infec_vhs_ult': '', 'sis_infec_vhs_hoje': '',
+        'sis_infec_pcr_show':  False,
+        'sis_infec_leuc_show': False,
+        'sis_infec_vhs_show':  False,
         'sis_infec_isolamento': None,
         'sis_infec_isolamento_tipo': '',
         'sis_infec_isolamento_motivo': '',
@@ -216,6 +246,14 @@ def get_campos():
         'sis_gastro_evacuacao': None,
         'sis_gastro_evacuacao_data': '',
         'sis_gastro_laxativo': '',
+        # TGI (função hepática)
+        'sis_gastro_tgo_ant5': '', 'sis_gastro_tgo_ant4': '', 'sis_gastro_tgo_antepen': '', 'sis_gastro_tgo_ult': '', 'sis_gastro_tgo_hoje': '',
+        'sis_gastro_tgp_ant5': '', 'sis_gastro_tgp_ant4': '', 'sis_gastro_tgp_antepen': '', 'sis_gastro_tgp_ult': '', 'sis_gastro_tgp_hoje': '',
+        'sis_gastro_fal_ant5': '', 'sis_gastro_fal_ant4': '', 'sis_gastro_fal_antepen': '', 'sis_gastro_fal_ult': '', 'sis_gastro_fal_hoje': '',
+        'sis_gastro_ggt_ant5': '', 'sis_gastro_ggt_ant4': '', 'sis_gastro_ggt_antepen': '', 'sis_gastro_ggt_ult': '', 'sis_gastro_ggt_hoje': '',
+        'sis_gastro_bt_ant5':  '', 'sis_gastro_bt_ant4':  '', 'sis_gastro_bt_antepen':  '', 'sis_gastro_bt_ult':  '', 'sis_gastro_bt_hoje':  '',
+        'sis_gastro_tgo_show': False, 'sis_gastro_tgp_show': False, 'sis_gastro_fal_show': False,
+        'sis_gastro_ggt_show': False, 'sis_gastro_bt_show':  False,
     })
 
     # 8. Hemato
@@ -233,21 +271,20 @@ def get_campos():
         'sis_hemato_transf_2_bolsas': '',
         'sis_hemato_transf_3_comp': '',
         'sis_hemato_transf_3_bolsas': '',
-        'sis_hemato_hb_antepen': '',
-        'sis_hemato_hb_ult': '',
-        'sis_hemato_hb_hoje': '',
-        'sis_hemato_plaq_antepen': '',
-        'sis_hemato_plaq_ult': '',
-        'sis_hemato_plaq_hoje': '',
-        'sis_hemato_inr_antepen': '',
-        'sis_hemato_inr_ult': '',
-        'sis_hemato_inr_hoje': '',
+        'sis_hemato_hb_ant5': '',   'sis_hemato_hb_ant4': '',   'sis_hemato_hb_antepen': '',   'sis_hemato_hb_ult': '',   'sis_hemato_hb_hoje': '',
+        'sis_hemato_plaq_ant5': '', 'sis_hemato_plaq_ant4': '', 'sis_hemato_plaq_antepen': '', 'sis_hemato_plaq_ult': '', 'sis_hemato_plaq_hoje': '',
+        'sis_hemato_inr_ant5': '',  'sis_hemato_inr_ant4': '',  'sis_hemato_inr_antepen': '',  'sis_hemato_inr_ult': '',  'sis_hemato_inr_hoje': '',
+        'sis_hemato_ttpa_ant5': '', 'sis_hemato_ttpa_ant4': '', 'sis_hemato_ttpa_antepen': '', 'sis_hemato_ttpa_ult': '', 'sis_hemato_ttpa_hoje': '',
+        'sis_hemato_hb_show':   False,
+        'sis_hemato_plaq_show': False,
+        'sis_hemato_inr_show':  False,
+        'sis_hemato_ttpa_show': False,
     })
 
     # 10. Pele e musculoesquelético
     campos.update({
-        'sis_pele_edema': None,           # Presente / Ausente
-        'sis_pele_edema_cruzes': '',      # Número de cruzes (cacifo)
+        'sis_pele_edema': None,
+        'sis_pele_edema_cruzes': '',
         'sis_pele_lpp': None,
         'sis_pele_lpp_local_1': '',
         'sis_pele_lpp_grau_1': '',
@@ -256,9 +293,37 @@ def get_campos():
         'sis_pele_lpp_local_3': '',
         'sis_pele_lpp_grau_3': '',
         'sis_pele_polineuropatia': None,
+        'sis_pele_cpk_ant5': '', 'sis_pele_cpk_ant4': '', 'sis_pele_cpk_antepen': '', 'sis_pele_cpk_ult': '', 'sis_pele_cpk_hoje': '',
+        'sis_pele_cpk_show': False,
     })
 
     return campos
+
+# --- HELPERS DE EVOLUÇÃO ---
+def _evo_header():
+    """Cabeçalho das colunas de evolução (5 slots)."""
+    _, lbl_c, v1, v2, v3, v4, v5 = st.columns([0.5, 1.5, 1, 1, 1, 1, 1])
+    with lbl_c: st.caption("Campo")
+    with v1:    st.caption("Hoje")
+    with v2:    st.caption("Ontem")
+    with v3:    st.caption("Anteontem")
+    with v4:    st.caption("4º")
+    with v5:    st.caption("5º")
+
+
+def _evo_row(label, prefix):
+    """Linha de evolução: checkbox prontuário | label | 5 inputs (hoje→5º)."""
+    cb_c, lbl_c, v1, v2, v3, v4, v5 = st.columns([0.5, 1.5, 1, 1, 1, 1, 1])
+    with cb_c:
+        st.checkbox("📋", key=f"{prefix}_show", help="Colocar no prontuário", label_visibility="collapsed")
+    with lbl_c:
+        st.markdown(f"**{label}**")
+    with v1: st.text_input(f"{label} hoje",    key=f"{prefix}_hoje",    placeholder="Hoje",    label_visibility="collapsed")
+    with v2: st.text_input(f"{label} ontem",   key=f"{prefix}_ult",     placeholder="Ontem",   label_visibility="collapsed")
+    with v3: st.text_input(f"{label} antepen", key=f"{prefix}_antepen", placeholder="Antepen", label_visibility="collapsed")
+    with v4: st.text_input(f"{label} 4o",      key=f"{prefix}_ant4",    placeholder="4º",      label_visibility="collapsed")
+    with v5: st.text_input(f"{label} 5o",      key=f"{prefix}_ant5",    placeholder="5º",      label_visibility="collapsed")
+
 
 # --- FUNÇÃO DE RENDERIZAÇÃO ---
 def render(_agent_btn_callback=None):
@@ -299,9 +364,7 @@ def render(_agent_btn_callback=None):
             _agent_btn_callback()
     
     # NEUROLÓGICO
-    with st.container(border=True):
-        st.markdown("**Neurológico**")
-        
+    with st.expander("Neurológico", expanded=False):
         # Linha 1: ECG total + componentes AO / RV / RM (text_input como FC, PAM, laboratoriais)
         ecg_col, ao_col, rv_col, rm_col = st.columns([1, 1, 1, 1])
         with ecg_col:
@@ -406,9 +469,7 @@ def render(_agent_btn_callback=None):
         st.text_input("Conduta", key="sis_neuro_conduta", placeholder="Escreva a conduta aqui...", label_visibility="collapsed")
 
     # RESPIRATÓRIO
-    with st.container(border=True):
-        st.markdown("**Respiratório**")
-        
+    with st.expander("Respiratório", expanded=False):
         # Exame Respiratório
         st.markdown("**Exame Respiratório**")
         st.text_input("Exame Respiratório", key="sis_resp_ausculta", placeholder="MV+, sem ruído adventício, expansão bilateral, sem sinais de desconforto", label_visibility="collapsed")
@@ -496,9 +557,7 @@ def render(_agent_btn_callback=None):
         st.text_input("Conduta", key="sis_resp_conduta", placeholder="Escreva a conduta aqui...", label_visibility="collapsed")
 
     # CARDIOVASCULAR
-    with st.container(border=True):
-        st.markdown("**Cardiovascular**")
-
+    with st.expander("Cardiovascular", expanded=False):
         # Frequência, Cardioscopia, PAM
         r1, r2, r3 = st.columns(3)
         with r1:
@@ -545,6 +604,12 @@ def render(_agent_btn_callback=None):
             with d2:
                 st.text_input(f"Dose {i}", key=f"sis_cardio_dva_{i}_dose", placeholder="Dose", label_visibility="collapsed")
 
+        # Exames Cardiovasculares
+        st.markdown("**Exames Cardiovasculares**")
+        _evo_header()
+        _evo_row("Lactato",   "sis_cardio_lac")
+        _evo_row("Troponina", "sis_cardio_trop")
+
         # Pocus Cardiovascular
         st.markdown("**Pocus Cardiovascular**")
         st.text_input("Pocus Cardiovascular", key="sis_cardio_pocus", placeholder="Ex: Função ventricular preservada...", label_visibility="collapsed")
@@ -555,9 +620,7 @@ def render(_agent_btn_callback=None):
         st.text_input("Conduta", key="sis_cardio_conduta", placeholder="Escreva a conduta aqui...", label_visibility="collapsed")
 
     # EXAME ABDOMINAL (antes Trato Gastrointestinal)
-    with st.container(border=True):
-        st.markdown("**Exame Abdominal**")
-
+    with st.expander("Abdominal / TGI / Nutri", expanded=False):
         # Exame Abdominal (coluna 1) | Icterícia Presente + Cruzes (coluna 2)
         ef_col, icter_col = st.columns([3, 1])
         with ef_col:
@@ -638,6 +701,15 @@ def render(_agent_btn_callback=None):
         st.markdown("**Pocus Exame Abdominal**")
         st.text_input("Pocus Exame Abdominal", key="sis_gastro_pocus", placeholder="Ex: Ascite leve...", label_visibility="collapsed")
 
+        # Exames Trato Gastrointestinal
+        st.markdown("**Exames Trato Gastrointestinal**")
+        _evo_header()
+        _evo_row("TGO", "sis_gastro_tgo")
+        _evo_row("TGP", "sis_gastro_tgp")
+        _evo_row("FAL", "sis_gastro_fal")
+        _evo_row("GGT", "sis_gastro_ggt")
+        _evo_row("BT",  "sis_gastro_bt")
+
         # Demais abdominal e Conduta
         st.markdown("**Demais abdominal**")
         st.text_input("Demais gastrointestinal", key="sis_gastro_obs", placeholder="Outros achados...", label_visibility="collapsed")
@@ -663,54 +735,18 @@ def render(_agent_btn_callback=None):
         st.markdown("**Volemia**")
         st.pills("Volemia", ["Hipovolêmico", "Euvolêmico", "Hipervolêmico"], key="sis_renal_volemia", label_visibility="collapsed")
 
-        # Creatinina e Ureia (hoje, ontem, anteontem)
-        st.markdown("**Função Renal**")
-        cr1, cr2, cr3 = st.columns(3)
-        with cr1:
-            st.markdown("**Hoje**")
-            st.text_input("Creatinina hoje", key="sis_renal_cr_hoje", placeholder="Creatinina hoje", label_visibility="collapsed")
-        with cr2:
-            st.markdown("**Ontem**")
-            st.text_input("Creatinina ontem", key="sis_renal_cr_ult", placeholder="Creatinina ontem", label_visibility="collapsed")
-        with cr3:
-            st.markdown("**Anteontem**")
-            st.text_input("Creatinina anteontem", key="sis_renal_cr_antepen", placeholder="Creatinina anteontem", label_visibility="collapsed")
-        ur1, ur2, ur3 = st.columns(3)
-        with ur1:
-            st.text_input("Ureia hoje", key="sis_renal_ur_hoje", placeholder="Ureia hoje", label_visibility="collapsed")
-        with ur2:
-            st.text_input("Ureia ontem", key="sis_renal_ur_ult", placeholder="Ureia ontem", label_visibility="collapsed")
-        with ur3:
-            st.text_input("Ureia anteontem", key="sis_renal_ur_antepen", placeholder="Ureia anteontem", label_visibility="collapsed")
-
-        # Distúrbios hidroeletrolíticos (apenas Hipo/Hiper; sem Normal)
-        _OPCOES_DHE = {
-            "sis_renal_sodio": ["Hiponatremia", "Hipernatremia"],
-            "sis_renal_potassio": ["Hipocalemia", "Hipercalemia"],
-            "sis_renal_magnesio": ["Hipomagnesemia", "Hipermagnesemia"],
-            "sis_renal_fosforo": ["Hipofosfatemia", "Hiperfosfatemia"],
-            "sis_renal_calcio": ["Hipocalcemia", "Hipercalcemia"],
-        }
-        for k, opcoes in _OPCOES_DHE.items():
-            if st.session_state.get(k) not in opcoes:
-                st.session_state[k] = None
-        st.markdown("**Distúrbio hidroeletrolítico**")
-        e1, e2, e3, e4, e5 = st.columns(5)
-        with e1:
-            st.markdown("**Sódio**")
-            st.pills("Sódio", ["Hiponatremia", "Hipernatremia"], key="sis_renal_sodio", label_visibility="collapsed")
-        with e2:
-            st.markdown("**Potássio**")
-            st.pills("Potássio", ["Hipocalemia", "Hipercalemia"], key="sis_renal_potassio", label_visibility="collapsed")
-        with e3:
-            st.markdown("**Magnésio**")
-            st.pills("Magnésio", ["Hipomagnesemia", "Hipermagnesemia"], key="sis_renal_magnesio", label_visibility="collapsed")
-        with e4:
-            st.markdown("**Fósforo**")
-            st.pills("Fósforo", ["Hipofosfatemia", "Hiperfosfatemia"], key="sis_renal_fosforo", label_visibility="collapsed")
-        with e5:
-            st.markdown("**Cálcio**")
-            st.pills("Cálcio", ["Hipocalcemia", "Hipercalcemia"], key="sis_renal_calcio", label_visibility="collapsed")
+        # Evolução Função Renal e Eletrólitos
+        st.markdown("**Evolução Função Renal e Eletrólitos**")
+        _evo_header()
+        _evo_row("Bal. Hídrico", "sis_renal_bh")
+        _evo_row("Diurese",    "sis_renal_diu")
+        _evo_row("Cr",         "sis_renal_cr")
+        _evo_row("Ur",         "sis_renal_ur")
+        _evo_row("Na",         "sis_renal_na")
+        _evo_row("K",          "sis_renal_k")
+        _evo_row("Mg",         "sis_renal_mg")
+        _evo_row("Fos",        "sis_renal_fos")
+        _evo_row("CaI",        "sis_renal_cai")
 
         # TRS
         st.markdown("**Terapia de Substituição Renal (TRS)**")
@@ -778,25 +814,12 @@ def render(_agent_btn_callback=None):
             with cs2:
                 st.text_input(f"Coleta {i}", key=f"sis_infec_cult_{i}_data", placeholder="Data coleta", label_visibility="collapsed")
 
-        # PCR e Leucócitos (hoje, ontem, anteontem)
-        st.markdown("**Marcadores inflamatórios**")
-        m1, m2, m3 = st.columns(3)
-        with m1:
-            st.markdown("**Hoje**")
-            st.text_input("PCR hoje", key="sis_infec_pcr_hoje", placeholder="PCR hoje", label_visibility="collapsed")
-        with m2:
-            st.markdown("**Ontem**")
-            st.text_input("PCR ontem", key="sis_infec_pcr_ult", placeholder="PCR ontem", label_visibility="collapsed")
-        with m3:
-            st.markdown("**Anteontem**")
-            st.text_input("PCR anteontem", key="sis_infec_pcr_antepen", placeholder="PCR anteontem", label_visibility="collapsed")
-        l1, l2, l3 = st.columns(3)
-        with l1:
-            st.text_input("Leucócitos hoje", key="sis_infec_leuc_hoje", placeholder="Leucócitos hoje", label_visibility="collapsed")
-        with l2:
-            st.text_input("Leucócitos ontem", key="sis_infec_leuc_ult", placeholder="Leucócitos ontem", label_visibility="collapsed")
-        with l3:
-            st.text_input("Leucócitos anteontem", key="sis_infec_leuc_antepen", placeholder="Leucócitos anteontem", label_visibility="collapsed")
+        # Exames Infecciosos
+        st.markdown("**Exames Infecciosos**")
+        _evo_header()
+        _evo_row("Leucócitos","sis_infec_leuc")
+        _evo_row("PCR",       "sis_infec_pcr")
+        _evo_row("VHS",       "sis_infec_vhs")
 
         # Isolamento
         st.markdown("**Isolamento**")
@@ -855,35 +878,13 @@ def render(_agent_btn_callback=None):
             with t2:
                 st.text_input(f"Nº bolsas {i}", key=f"sis_hemato_transf_{i}_bolsas", placeholder="Nº bolsas", label_visibility="collapsed")
 
-        # Hb, Plaquetas e INR (hoje, ontem, anteontem)
-        st.markdown("**Hemograma**")
-        h1, h2, h3 = st.columns(3)
-        with h1:
-            st.markdown("**Hoje**")
-            st.text_input("Hb hoje", key="sis_hemato_hb_hoje", placeholder="Hb hoje", label_visibility="collapsed")
-        with h2:
-            st.markdown("**Ontem**")
-            st.text_input("Hb ontem", key="sis_hemato_hb_ult", placeholder="Hb ontem", label_visibility="collapsed")
-        with h3:
-            st.markdown("**Anteontem**")
-            st.text_input("Hb anteontem", key="sis_hemato_hb_antepen", placeholder="Hb anteontem", label_visibility="collapsed")
-        p1, p2, p3 = st.columns(3)
-        with p1:
-            st.text_input("Plaquetas hoje", key="sis_hemato_plaq_hoje", placeholder="Plaquetas hoje", label_visibility="collapsed")
-        with p2:
-            st.text_input("Plaquetas ontem", key="sis_hemato_plaq_ult", placeholder="Plaquetas ontem", label_visibility="collapsed")
-        with p3:
-            st.text_input("Plaquetas anteontem", key="sis_hemato_plaq_antepen", placeholder="Plaquetas anteontem", label_visibility="collapsed")
-
-        # Coagulograma
-        st.markdown("**Coagulograma**")
-        inr1, inr2, inr3 = st.columns(3)
-        with inr1:
-            st.text_input("INR hoje", key="sis_hemato_inr_hoje", placeholder="INR hoje", label_visibility="collapsed")
-        with inr2:
-            st.text_input("INR ontem", key="sis_hemato_inr_ult", placeholder="INR ontem", label_visibility="collapsed")
-        with inr3:
-            st.text_input("INR anteontem", key="sis_hemato_inr_antepen", placeholder="INR anteontem", label_visibility="collapsed")
+        # Exames Hematológicos
+        st.markdown("**Exames Hematológicos**")
+        _evo_header()
+        _evo_row("Hb",   "sis_hemato_hb")
+        _evo_row("Plaq", "sis_hemato_plaq")
+        _evo_row("INR",  "sis_hemato_inr")
+        _evo_row("TTPa", "sis_hemato_ttpa")
 
         # Pocus Hematológico
         st.markdown("**Pocus Hematológico**")
@@ -926,6 +927,11 @@ def render(_agent_btn_callback=None):
         # Pocus Pele e musculoesquelético
         st.markdown("**Pocus Pele e musculoesquelético**")
         st.text_input("Pocus Pele", key="sis_pele_pocus", placeholder="Ex: Edema em membros inferiores...", label_visibility="collapsed")
+
+        # Evolução CPK
+        st.markdown("**Evolução CPK**")
+        _evo_header()
+        _evo_row("CPK", "sis_pele_cpk")
 
         # Demais e Conduta
         st.markdown("**Demais pele e musculoesquelético**")

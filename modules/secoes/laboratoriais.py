@@ -7,10 +7,26 @@ _LAB_SUFIXOS = [
     "tgp", "tgo", "fal", "ggt", "bt", "bd", "prot_tot", "alb", "amil", "lipas",
     "cpk", "cpk_mb", "bnp", "trop", "pcr", "vhs", "tp", "ttpa",
     "ur_dens", "ur_le", "ur_nit", "ur_leu", "ur_hm", "ur_prot", "ur_cet", "ur_glic",
-    "gas_tipo", "gas_ph", "gas_pco2", "gas_po2", "gas_hco3", "gas_be", "gas_sat",
+    # Gasometria 1
+    "gas_tipo", "gas_hora",
+    "gas_ph", "gas_pco2", "gas_po2", "gas_hco3", "gas_be", "gas_sat",
     "gas_lac", "gas_ag", "gas_cl", "gas_na", "gas_k", "gas_cai",
-    "gasv_pco2", "svo2", "outros", "conduta",
+    "gasv_pco2", "svo2",
+    # Gasometria 2
+    "gas2_tipo", "gas2_hora",
+    "gas2_ph", "gas2_pco2", "gas2_po2", "gas2_hco3", "gas2_be", "gas2_sat",
+    "gas2_lac", "gas2_ag", "gas2_cl", "gas2_na", "gas2_k", "gas2_cai",
+    "gas2v_pco2", "gas2_svo2",
+    # Gasometria 3
+    "gas3_tipo", "gas3_hora",
+    "gas3_ph", "gas3_pco2", "gas3_po2", "gas3_hco3", "gas3_be", "gas3_sat",
+    "gas3_lac", "gas3_ag", "gas3_cl", "gas3_na", "gas3_k", "gas3_cai",
+    "gas3v_pco2", "gas3_svo2",
+    "outros", "conduta",
 ]
+
+# Sufixos que armazenam o tipo de gasometria (precisam de tratamento especial no deslocamento)
+_GAS_TIPO_SUFIXOS = {"gas_tipo", "gas2_tipo", "gas3_tipo"}
 
 
 def _deslocar_laboratoriais():
@@ -23,15 +39,15 @@ def _deslocar_laboratoriais():
             key_orig = f"lab_{orig}_{suf}"
             key_dest = f"lab_{dest}_{suf}"
             val = st.session_state.get(key_orig)
-            if suf == "gas_tipo":
-                st.session_state[key_dest] = val if val in (None, "Arterial", "Venosa") else None
+            if suf in _GAS_TIPO_SUFIXOS:
+                st.session_state[key_dest] = val if val in (None, "Arterial", "Venosa", "Pareada") else None
             else:
                 st.session_state[key_dest] = val if val is not None else ""
 
     def _limpar(slot: int):
         for suf in _LAB_SUFIXOS:
             key = f"lab_{slot}_{suf}"
-            if suf == "gas_tipo":
+            if suf in _GAS_TIPO_SUFIXOS:
                 st.session_state[key] = None
             else:
                 st.session_state[key] = ""
@@ -79,14 +95,26 @@ def get_campos():
             f'lab_{i}_ur_dens': '', f'lab_{i}_ur_le': '', f'lab_{i}_ur_nit': '', f'lab_{i}_ur_leu': '',
             f'lab_{i}_ur_hm': '', f'lab_{i}_ur_prot': '', f'lab_{i}_ur_cet': '', f'lab_{i}_ur_glic': '',
             
-            # Linha 6: Gasometria
-            f'lab_{i}_gas_tipo': None,
+            # Gasometria 1
+            f'lab_{i}_gas_tipo': None, f'lab_{i}_gas_hora': '',
             f'lab_{i}_gas_ph': '', f'lab_{i}_gas_pco2': '', f'lab_{i}_gas_po2': '', f'lab_{i}_gas_hco3': '',
             f'lab_{i}_gas_be': '', f'lab_{i}_gas_sat': '', f'lab_{i}_gas_lac': '', f'lab_{i}_gas_ag': '',
             f'lab_{i}_gas_cl': '', f'lab_{i}_gas_na': '', f'lab_{i}_gas_k': '', f'lab_{i}_gas_cai': '',
-
-            # Linha 7: Gaso Venosa
             f'lab_{i}_gasv_pco2': '', f'lab_{i}_svo2': '',
+
+            # Gasometria 2
+            f'lab_{i}_gas2_tipo': None, f'lab_{i}_gas2_hora': '',
+            f'lab_{i}_gas2_ph': '', f'lab_{i}_gas2_pco2': '', f'lab_{i}_gas2_po2': '', f'lab_{i}_gas2_hco3': '',
+            f'lab_{i}_gas2_be': '', f'lab_{i}_gas2_sat': '', f'lab_{i}_gas2_lac': '', f'lab_{i}_gas2_ag': '',
+            f'lab_{i}_gas2_cl': '', f'lab_{i}_gas2_na': '', f'lab_{i}_gas2_k': '', f'lab_{i}_gas2_cai': '',
+            f'lab_{i}_gas2v_pco2': '', f'lab_{i}_gas2_svo2': '',
+
+            # Gasometria 3
+            f'lab_{i}_gas3_tipo': None, f'lab_{i}_gas3_hora': '',
+            f'lab_{i}_gas3_ph': '', f'lab_{i}_gas3_pco2': '', f'lab_{i}_gas3_po2': '', f'lab_{i}_gas3_hco3': '',
+            f'lab_{i}_gas3_be': '', f'lab_{i}_gas3_sat': '', f'lab_{i}_gas3_lac': '', f'lab_{i}_gas3_ag': '',
+            f'lab_{i}_gas3_cl': '', f'lab_{i}_gas3_na': '', f'lab_{i}_gas3_k': '', f'lab_{i}_gas3_cai': '',
+            f'lab_{i}_gas3v_pco2': '', f'lab_{i}_gas3_svo2': '',
 
             # Linha 8: Outros
             f'lab_{i}_outros': '',
@@ -116,13 +144,13 @@ def _render_slot(i):
         
         # LINHA 1: Hemato
         cols1 = st.columns([1, 1, 1, 1, 1, 2.5, 1.2])
-        with cols1[0]: st.text_input("Hb", key=f'lab_{i}_hb', placeholder="g/dL")
-        with cols1[1]: st.text_input("Ht", key=f'lab_{i}_ht', placeholder="%")
+        with cols1[0]: st.text_input("Hb", key=f'lab_{i}_hb')
+        with cols1[1]: st.text_input("Ht", key=f'lab_{i}_ht')
         with cols1[2]: st.text_input("VCM", key=f'lab_{i}_vcm')
         with cols1[3]: st.text_input("HCM", key=f'lab_{i}_hcm')
         with cols1[4]: st.text_input("RDW", key=f'lab_{i}_rdw')
         with cols1[5]: st.text_input("Leuco (Dif)", key=f'lab_{i}_leuco', placeholder="Total (Seg/Bast)")
-        with cols1[6]: st.text_input("Plaq", key=f'lab_{i}_plaq', placeholder="x10³")
+        with cols1[6]: st.text_input("Plaq", key=f'lab_{i}_plaq')
         
         # LINHA 2: Renal
         cols2 = st.columns(8)
@@ -162,45 +190,59 @@ def _render_slot(i):
         # LINHA 5: Urina (Sem separador visual, apenas label discreto)
         st.caption("Urina (EAS)")
         u1, u2, u3, u4, u5, u6, u7, u8 = st.columns(8)
-        with u1: st.text_input("Dens", key=f'lab_{i}_ur_dens', placeholder="1035")
-        with u2: st.text_input("L.Est", key=f'lab_{i}_ur_le', placeholder="Neg")
-        with u3: st.text_input("Nit", key=f'lab_{i}_ur_nit', placeholder="Neg")
-        with u4: st.text_input("Leuco", key=f'lab_{i}_ur_leu', placeholder="4k")
-        with u5: st.text_input("Hm", key=f'lab_{i}_ur_hm', placeholder="2k")
-        with u6: st.text_input("Prot", key=f'lab_{i}_ur_prot', placeholder="Neg")
-        with u7: st.text_input("Cet", key=f'lab_{i}_ur_cet', placeholder="Neg")
-        with u8: st.text_input("Glic", key=f'lab_{i}_ur_glic', placeholder="Neg")
+        with u1: st.text_input("Dens", key=f'lab_{i}_ur_dens')
+        with u2: st.text_input("L.Est", key=f'lab_{i}_ur_le')
+        with u3: st.text_input("Nit", key=f'lab_{i}_ur_nit')
+        with u4: st.text_input("Leuco", key=f'lab_{i}_ur_leu')
+        with u5: st.text_input("Hm", key=f'lab_{i}_ur_hm')
+        with u6: st.text_input("Prot", key=f'lab_{i}_ur_prot')
+        with u7: st.text_input("Cet", key=f'lab_{i}_ur_cet')
+        with u8: st.text_input("Glic", key=f'lab_{i}_ur_glic')
 
-        # LINHA 6: Gasometria
+        # GASOMETRIA — expander com até 3 gasometrias
+        def _render_gas_block(slot, gn):
+            """Renderiza um bloco de gasometria. gn=1 usa prefixo 'gas', gn=2 'gas2', gn=3 'gas3'."""
+            p  = "gas" if gn == 1 else f"gas{gn}"
+            kv = f"lab_{slot}_{p}v_pco2"
+            ks = f"lab_{slot}_svo2"       if gn == 1 else f"lab_{slot}_{p}_svo2"
+
+            _tipo_key = f"lab_{slot}_{p}_tipo"
+            if st.session_state.get(_tipo_key) not in (None, "Arterial", "Venosa", "Pareada"):
+                st.session_state[_tipo_key] = None
+
+            _c_hora, _c_pills, _c_esp = st.columns([1, 3, 4])
+            with _c_hora:
+                st.text_input("Hora", key=f"lab_{slot}_{p}_hora", placeholder="16h", label_visibility="collapsed")
+            with _c_pills:
+                st.pills(f"Gaso {gn} #{slot}", ["Arterial", "Venosa", "Pareada"], key=_tipo_key, label_visibility="collapsed")
+
+            ga = st.columns(6)
+            with ga[0]: st.text_input("pH",    key=f"lab_{slot}_{p}_ph")
+            with ga[1]: st.text_input("pCO2",  key=f"lab_{slot}_{p}_pco2")
+            with ga[2]: st.text_input("pO2",   key=f"lab_{slot}_{p}_po2")
+            with ga[3]: st.text_input("HCO3",  key=f"lab_{slot}_{p}_hco3")
+            with ga[4]: st.text_input("BE",    key=f"lab_{slot}_{p}_be")
+            with ga[5]: st.text_input("SatO2", key=f"lab_{slot}_{p}_sat")
+
+            gb = st.columns(6)
+            with gb[0]: st.text_input("Lac",  key=f"lab_{slot}_{p}_lac")
+            with gb[1]: st.text_input("AG",   key=f"lab_{slot}_{p}_ag")
+            with gb[2]: st.text_input("Cl",   key=f"lab_{slot}_{p}_cl")
+            with gb[3]: st.text_input("Na",   key=f"lab_{slot}_{p}_na")
+            with gb[4]: st.text_input("K",    key=f"lab_{slot}_{p}_k")
+            with gb[5]: st.text_input("Cai",  key=f"lab_{slot}_{p}_cai")
+
+            gc1, gc2, gc3 = st.columns([1, 1, 4])
+            with gc1: st.text_input("pCO2(v)", key=kv)
+            with gc2: st.text_input("SvO2",    key=ks)
+
         st.caption("Gasometria")
-        # Garante que gas_tipo nunca tenha valor inválido para o radio (ex: "" vindo de agente IA)
-        _gas_key = f'lab_{i}_gas_tipo'
-        if st.session_state.get(_gas_key) not in (None, "Arterial", "Venosa"):
-            st.session_state[_gas_key] = None
-        st.pills(f"Gaso #{i}", ["Arterial", "Venosa"], key=_gas_key, label_visibility="collapsed")
-        
-        g1 = st.columns(6)
-        with g1[0]: st.text_input("pH", key=f'lab_{i}_gas_ph')
-        with g1[1]: st.text_input("pCO2", key=f'lab_{i}_gas_pco2')
-        with g1[2]: st.text_input("pO2", key=f'lab_{i}_gas_po2')
-        with g1[3]: st.text_input("HCO3", key=f'lab_{i}_gas_hco3')
-        with g1[4]: st.text_input("BE", key=f'lab_{i}_gas_be')
-        with g1[5]: st.text_input("SatO2", key=f'lab_{i}_gas_sat')
-        
-        g2 = st.columns(6)
-        with g2[0]: st.text_input("Lac", key=f'lab_{i}_gas_lac')
-        with g2[1]: st.text_input("AG", key=f'lab_{i}_gas_ag')
-        with g2[2]: st.text_input("Cl", key=f'lab_{i}_gas_cl')
-        with g2[3]: st.text_input("Na", key=f'lab_{i}_gas_na')
-        with g2[4]: st.text_input("K", key=f'lab_{i}_gas_k')
-        with g2[5]: st.text_input("Cai", key=f'lab_{i}_gas_cai')
+        _render_gas_block(i, 1)
 
-        # LINHA 7: Gasometria Venosa / Perfusão
-        st.caption("Perfusão")
-        gp1, gp2, gp3 = st.columns([1, 1, 4])
-        with gp1: st.text_input("pCO2(v)", key=f'lab_{i}_gasv_pco2')
-        with gp2: st.text_input("SvO2", key=f'lab_{i}_svo2')
-        with gp3: st.write("")
+        with st.expander("+ Gasometrias anteriores", expanded=False):
+            _render_gas_block(i, 2)
+            st.divider()
+            _render_gas_block(i, 3)
 
         # LINHA 8: Outros
         st.text_input(
@@ -225,8 +267,8 @@ def render(_agent_btn_callback=None):
     st.text_area("Notas", key="laboratoriais_notas", height="content", placeholder="Cole neste campo a evolução...", label_visibility="collapsed")
     st.write("")
 
-    # Botões: Evolução Hoje | Parsing Exames | Completar Campos | Extrair Exames
-    _bcol1, _bcol2, _bcol3, _bcol4, _ = st.columns([1, 1, 1, 1, 2])
+    # Botões: Evolução Hoje | Parsing Exames | Completar Campos | Extrair Exames | Comparar
+    _bcol1, _bcol2, _bcol3, _bcol4, _bcol5 = st.columns([1, 1, 1, 1, 1])
     with _bcol1:
         evo_clicked = st.form_submit_button(
             "Evolução Hoje",
@@ -256,7 +298,15 @@ def render(_agent_btn_callback=None):
             help="Formata os exames com IA (PACER) e aplica o agente automaticamente",
         ):
             st.session_state["_lab_extrair_pendente"] = True
-    
+    with _bcol5:
+        if st.form_submit_button(
+            "Comparar",
+            key="_fsbtn_comparar_lab",
+            use_container_width=True,
+            help="Abre tabela comparativa com todos os campos (hemato, bioquímica, gasometria, urina)",
+        ):
+            st.session_state["_comparar_lab_pendente"] = True
+
     # --- 4 Slots VISÍVEIS (Hoje, Ontem, Anteontem, Lab Externos) ---
     for i in range(1, 5):
         _render_slot(i)

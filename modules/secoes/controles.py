@@ -86,8 +86,8 @@ def render(_agent_btn_callback=None):
     """, unsafe_allow_html=True)
 
     with st.container(border=True):
-        # Botão Evolução Hoje | Parsing Controles | Completar Campos | Período (24h/12h)
-        _col_evo, _col_parse, _col_agente, _col_periodo = st.columns(4)
+        # Botão Evolução Hoje | Parsing Controles | Completar Campos | Comparar | Período
+        _col_evo, _col_parse, _col_agente, _col_cmp, _col_periodo = st.columns([1, 1, 1, 1, 1])
         with _col_evo:
             if st.form_submit_button(
                 "Evolução Hoje",
@@ -106,6 +106,14 @@ def render(_agent_btn_callback=None):
         with _col_agente:
             if _agent_btn_callback:
                 _agent_btn_callback()
+        with _col_cmp:
+            if st.form_submit_button(
+                "Comparar",
+                key="_fsbtn_comparar_ctrl",
+                use_container_width=True,
+                help="Tabela comparativa dos controles: vitais e balanço por dia",
+            ):
+                st.session_state["_comparar_ctrl_pendente"] = True
         with _col_periodo:
             st.pills(
                 "Período",
