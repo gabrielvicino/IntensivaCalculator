@@ -13,7 +13,7 @@ st.set_page_config(
 # SISTEMA DE AUTENTICAÇÃO SIMPLES
 # TODO: Reativar ao final - definir AUTENTICAR = True
 # ==============================================================================
-AUTENTICAR = True   # Reativado — PIN configurável via st.secrets["PIN_ACESSO"]
+AUTENTICAR = False  # Temporariamente desativado
 
 def _carregar_pin() -> str:
     """Carrega o PIN de st.secrets ou usa fallback vazio (nunca hardcoded)."""
