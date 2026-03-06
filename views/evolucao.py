@@ -8,7 +8,7 @@ from modules import ui, fichas, gerador, fluxo, ia_extrator, agentes_secoes, ext
 from modules.parser_lab import parse_lab_deterministico
 from modules.parser_controles import parse_controles_deterministico
 from modules.secoes.condutas import render_condutas_registradas as _render_condutas_reg
-from utils import load_data, save_evolucao, load_evolucao, check_evolucao_exists, mostrar_rodape, carregar_chave_api
+from utils import load_data, save_evolucao, load_evolucao, check_evolucao_exists, mostrar_rodape, carregar_chave_api, verificar_rate_limit, uso_rate_limit
 
 # ── Chaves de API (secrets.toml → .env → vazio) ───────────────────────────────
 try:
@@ -156,27 +156,44 @@ def _aplicar_agentes_paralelo(secoes: list[str]):
         st.warning("Nenhuma seção tem texto para processar.")
         return
 
-    progresso  = st.progress(0, text=f"🤖 Processando {n_tarefas} agentes em paralelo...")
-    status_txt = st.empty()
+    st.toast(f"🤖 {n_tarefas} agente(s) iniciado(s) — a página ficará em execução...", icon="⏳")
 
-    def _on_progress(concluidos, total, nome):
-        if nome:
-            status_txt.caption(f"✅ {nome} ({concluidos}/{total})")
-        progresso.progress(concluidos / total)
+    with st.status(
+        f"🤖 Agentes de IA em execução — {n_tarefas} seção(ões)...",
+        expanded=True,
+    ) as _status_agentes:
+        progresso  = st.progress(0)
+        status_txt = st.empty()
+        status_txt.caption("⏳ Aguardando resposta da IA...")
 
-    n_ok, erros = fluxo.rodar_agentes_paralelo(
-        secoes, api_key, _provider_completo(), modelo_escolhido,
-        on_progress=_on_progress,
-    )
+        def _on_progress(concluidos, total, nome):
+            if nome:
+                status_txt.caption(f"✅ {nome}  ({concluidos}/{total} concluídos)")
+            progresso.progress(concluidos / total)
 
-    progresso.progress(1.0, text="✅ Concluído!")
-    status_txt.empty()
+        n_ok, erros = fluxo.rodar_agentes_paralelo(
+            secoes, api_key, _provider_completo(), modelo_escolhido,
+            on_progress=_on_progress,
+        )
 
-    if erros:
-        for e in erros:
-            st.warning(f"⚠️ {e}")
-    else:
-        st.success(f"✅ {n_ok} seções preenchidas com sucesso!")
+        progresso.progress(1.0)
+        status_txt.empty()
+
+        if erros:
+            _status_agentes.update(
+                label=f"⚠️ Concluído com {len(erros)} erro(s) — {n_ok} seções preenchidas",
+                state="error",
+                expanded=True,
+            )
+            for e in erros:
+                st.warning(f"⚠️ {e}")
+        else:
+            _status_agentes.update(
+                label=f"✅ {n_ok} seção(ões) preenchida(s) com sucesso!",
+                state="complete",
+                expanded=False,
+            )
+
     st.rerun()
 
 
@@ -215,19 +232,27 @@ with st.container(border=True):
         elif not texto_input:
             st.warning("Cole o texto do prontuário primeiro.")
         else:
-            with st.spinner("Processando prontuário para seções 1 a 14..."):
-                dados_notas = ia_extrator.extrair_dados_prontuario(
-                    texto_bruto=texto_input,
-                    api_key=api_key,
-                    provider=_provider_completo(),
-                    modelo=modelo_escolhido,
-                )
-                fluxo.atualizar_notas_ia(dados_notas)
-            st.session_state["_secoes_recortadas"] = {
-                sec: bool(st.session_state.get(agentes_secoes._NOTAS_MAP[sec], "").strip())
-                for sec in agentes_secoes._NOTAS_MAP
-                if sec in agentes_secoes._AGENTES
-            }
+            _ok, _msg = verificar_rate_limit()
+            if not _ok:
+                st.error(f"🚫 {_msg}")
+            else:
+                st.toast("🤖 IA iniciada — aguarde alguns segundos...", icon="⏳")
+                with st.status("🤖 Extraindo seções com IA...", expanded=True) as _st_extr:
+                    _st_extr.write("📤 Enviando prontuário para análise...")
+                    dados_notas = ia_extrator.extrair_dados_prontuario(
+                        texto_bruto=texto_input,
+                        api_key=api_key,
+                        provider=_provider_completo(),
+                        modelo=modelo_escolhido,
+                    )
+                    _st_extr.write("📥 Distribuindo dados para os campos...")
+                    fluxo.atualizar_notas_ia(dados_notas)
+                    _st_extr.update(label="✅ Seções extraídas com sucesso!", state="complete", expanded=False)
+                st.session_state["_secoes_recortadas"] = {
+                    sec: bool(st.session_state.get(agentes_secoes._NOTAS_MAP[sec], "").strip())
+                    for sec in agentes_secoes._NOTAS_MAP
+                    if sec in agentes_secoes._AGENTES
+                }
 
 # ── Checklist persistente + botão de agentes ──────────────────────────────────
 if "_secoes_recortadas" in st.session_state:
@@ -419,24 +444,32 @@ if st.session_state.pop("_lab_extrair_pendente", False) and api_key:
     if not texto_lab:
         st.warning("Cole os exames no campo de notas do Bloco 10 primeiro.")
     else:
-        with st.spinner("🧪 Extraindo e formatando exames (PACER)..."):
-            resultado_pacer = extrator_exames.extrair_exames(
-                texto_lab, api_key, _provider_completo(), modelo_escolhido
-            )
-        if resultado_pacer.startswith("❌"):
-            st.error(resultado_pacer)
-        elif not resultado_pacer.strip():
-            st.warning("⚠️ Nenhum dado laboratorial foi extraído do texto. Verifique o formato dos exames.")
+        _ok, _msg = verificar_rate_limit()
+        if not _ok:
+            st.error(f"🚫 {_msg}")
         else:
-            st.toast("✅ Exames formatados! Aplicando ao prontuário...", icon="🧪")
-            with st.spinner("🤖 Aplicando agente de laboratoriais..."):
-                dados_lab = agentes_secoes._AGENTES["laboratoriais"](
-                    resultado_pacer, api_key, _provider_completo(), modelo_escolhido
+            st.toast("🧪 Extraindo exames com IA — aguarde...", icon="⏳")
+            with st.status("🧪 Extraindo exames laboratoriais (PACER)...", expanded=True) as _st_lab:
+                _st_lab.write("📤 Enviando exames para formatação pelo PACER...")
+                resultado_pacer = extrator_exames.extrair_exames(
+                    texto_lab, api_key, _provider_completo(), modelo_escolhido
                 )
-            if "_erro" in dados_lab:
-                st.warning(f"⚠️ Erro no agente de laboratoriais: {dados_lab['_erro']}")
-            else:
-                _para_staging(dados_lab)
+                if resultado_pacer.startswith("❌"):
+                    _st_lab.update(label="❌ Falha na extração", state="error", expanded=True)
+                    st.error(resultado_pacer)
+                elif not resultado_pacer.strip():
+                    _st_lab.update(label="⚠️ Nenhum dado extraído", state="error", expanded=True)
+                    st.warning("⚠️ Nenhum dado laboratorial foi extraído do texto. Verifique o formato dos exames.")
+                else:
+                    _st_lab.write("🤖 Aplicando agente de laboratoriais aos campos...")
+                    dados_lab = agentes_secoes._AGENTES["laboratoriais"](
+                        resultado_pacer, api_key, _provider_completo(), modelo_escolhido
+                    )
+                    if "_erro" in dados_lab:
+                        _st_lab.update(label=f"⚠️ Erro no agente: {dados_lab['_erro']}", state="error", expanded=True)
+                    else:
+                        _st_lab.update(label="✅ Exames extraídos e aplicados!", state="complete", expanded=False)
+                        _para_staging(dados_lab)
 
 # ── Parsing Sistemas (determinístico) ─────────────────────────────────────────
 if st.session_state.pop("_sistemas_deterministico_pendente", False):
@@ -456,15 +489,22 @@ if st.session_state.pop("_prescricao_extrair_pendente", False) and api_key:
     if not texto_presc:
         st.warning("Cole a prescrição no campo do Bloco 14 primeiro.")
     else:
-        with st.spinner("💊 Formatando prescrição com IA..."):
-            resultado_presc = extrator_exames.extrair_prescricao(
-                texto_presc, api_key, _provider_completo(), modelo_escolhido
-            )
-        if resultado_presc.startswith("❌"):
-            st.error(resultado_presc)
+        _ok, _msg = verificar_rate_limit()
+        if not _ok:
+            st.error(f"🚫 {_msg}")
         else:
-            st.toast("✅ Prescrição formatada!", icon="💊")
-            _para_staging({"prescricao_formatada": resultado_presc})
+            st.toast("💊 Formatando prescrição com IA — aguarde...", icon="⏳")
+            with st.status("💊 Formatando prescrição (PACER)...", expanded=True) as _st_presc:
+                _st_presc.write("📤 Enviando prescrição para formatação...")
+                resultado_presc = extrator_exames.extrair_prescricao(
+                    texto_presc, api_key, _provider_completo(), modelo_escolhido
+                )
+                if resultado_presc.startswith("❌"):
+                    _st_presc.update(label="❌ Falha na formatação", state="error", expanded=True)
+                    st.error(resultado_presc)
+                else:
+                    _st_presc.update(label="✅ Prescrição formatada!", state="complete", expanded=False)
+                    _para_staging({"prescricao_formatada": resultado_presc})
 
 # ==============================================================================
 # BLOCO 3: PRONTUÁRIO COMPLETO
