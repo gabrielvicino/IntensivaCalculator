@@ -19,6 +19,9 @@ env/
 # Secrets e Configurações Sensíveis
 .env
 .streamlit/secrets.toml
+.streamlit/secrets_example.toml
+.streamlit/secrets*.toml
+MDs Gerados/CONFIGURAR_SECRETS*.md
 
 # IDEs e Editores
 .vscode/

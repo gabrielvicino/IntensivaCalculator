@@ -14,7 +14,17 @@ st.set_page_config(
 # TODO: Reativar ao final - definir AUTENTICAR = True
 # ==============================================================================
 AUTENTICAR = False  # Temporariamente desativado para desenvolvimento
-PIN_CORRETO = "7894"
+
+def _carregar_pin() -> str:
+    """Carrega o PIN de st.secrets ou usa fallback vazio (nunca hardcoded)."""
+    try:
+        if hasattr(st, "secrets") and "PIN_ACESSO" in st.secrets:
+            return str(st.secrets["PIN_ACESSO"])
+    except Exception:
+        pass
+    return ""
+
+PIN_CORRETO = _carregar_pin()
 
 def verificar_autenticacao():
     """
