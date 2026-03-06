@@ -22,11 +22,11 @@ def carregar_chave_api(nome_secret: str, nome_env: str) -> str:
 def _rate_config() -> tuple[int, int]:
     """Lê limites de st.secrets ou usa defaults: (max_calls, janela_minutos)."""
     try:
-        max_calls  = int(st.secrets.get("RATE_MAX_CALLS",  20))
-        janela_min = int(st.secrets.get("RATE_JANELA_MIN", 10))
+        max_calls  = int(st.secrets.get("RATE_MAX_CALLS",  15))
+        janela_min = int(st.secrets.get("RATE_JANELA_MIN",  8))
         return max_calls, janela_min
     except Exception:
-        return 20, 10
+        return 15, 8
 
 
 def verificar_rate_limit() -> tuple[bool, str]:
